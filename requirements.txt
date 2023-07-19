@@ -6,7 +6,7 @@ torch
 wandb
 hydra-core
 omegaconf
-numpy
+numpy==1.23.1 # np.bool issues
 pillow
 moviepy
 imageio
@@ -23,4 +23,4 @@ gym_unity
 pandas
 tensorboard
 causal_world
-timm==0.3.2
+timm==0.4.12 # for pytorch 2.

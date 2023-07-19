@@ -1,4 +1,4 @@
-entity: jaesikyoon
+entity:
 project: ocrl
 log: all
 log_gradient_freq: 0
