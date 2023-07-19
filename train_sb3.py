@@ -63,12 +63,12 @@ def main(config):
             [make_env(i, seed=config.seed) for i in range(config.num_envs)],
             start_method="fork",
         )
-    env = VecVideoRecorder(
-        env,
-        f"{wandb.run.dir}/videos/",
-        record_video_trigger=lambda x: x % config.video.interval == 0,
-        video_length=config.video.length,
-    )
+    # env = VecVideoRecorder(
+    #     env,
+    #     f"{wandb.run.dir}/videos/",
+    #     record_video_trigger=lambda x: x % config.video.interval == 0,
+    #     video_length=config.video.length,
+    # )
     if config.ocr.name == "GT":
         config.env.render_mode = "state"
     eval_env = getattr(envs, config.env.env)(
@@ -88,12 +88,11 @@ def main(config):
         model_kwargs = dict(model_kwargs, **config.sb3.algo_kwargs)
     if 'n_steps' in model_kwargs:
         model_kwargs['n_steps'] = model_kwargs['n_steps'] // config.num_envs
-    policy = sb3s.CustomActorCriticPolicy
-    model_kwargs['policy_kwargs']['config'] = config
-    if hasattr(config.sb3, 'algo_kwargs'):
-        model_kwargs = dict(model_kwargs, **config.sb3.algo_kwargs)
-    if 'n_steps' in model_kwargs:
-        model_kwargs['n_steps'] = model_kwargs['n_steps'] // config.num_envs
+    if hasattr(config.sb3, 'orig') and config.sb3.orig:
+        policy = 'CnnPolicy'
+    else:
+        policy = sb3s.CustomActorCriticPolicy
+        model_kwargs['policy_kwargs']['config'] = config
     model = getattr(sb3, config.sb3.name)(
         policy,
         env,
