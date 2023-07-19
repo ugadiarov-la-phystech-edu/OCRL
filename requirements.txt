@@ -1,3 +1,4 @@
+# setuptools==65.5.0 install before requirements.txt
 gym==0.21.0
 spriteworld
 tqdm
