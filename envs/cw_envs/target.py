@@ -12,7 +12,7 @@ from .cw import MyCausalWorld
 
 def CwTargetEnv(config, seed):
     np.random.seed(seed)
-    assert config.mode in ["easy", "hard"]  # no normal for now
+    assert config.mode in ["easy", "casual", "hard"]  # no normal for now
     assert config.rew_type in ["sparse"]  # only sparse for now
     task = SingleFingerReachTask(activate_sparse_reward=True)
     if config.render_mode == "finger_image":
@@ -95,6 +95,7 @@ class SingleFingerCausalWorldWrapper(gym.Wrapper):
         super().__init__(env)
         self.env = env
         self._config = config
+        self._persistent_target_idx = None
         self._COLORS = self._config.COLORS
         if len(self._config.target) > 0:
             self._target_color = self._config.target[0]
@@ -166,13 +167,21 @@ class SingleFingerCausalWorldWrapper(gym.Wrapper):
             cart_positions.append(cart)
         return [cart2cyl(p) for p in cart_positions]
 
+    def _get_target_obj_index(self):
+        if self._config.mode == "casual":
+            if self._persistent_target_idx is None:
+                self._persistent_target_idx = np.random.randint(self.num_objects)
+            return self._persistent_target_idx
+        return np.random.randint(self.num_objects)
+
     def reset(self, **kwargs):
         obs = self.env.reset()
         interventions = {}
         interventions["joint_positions"] = self._JOINTS_RAISED_POSITIONS
-        self.target_obj_idx = np.random.randint(self.num_objects)
+        self.target_obj_idx = self._get_target_obj_index()
+
         self.env._task.target_obj = f"obj_{self.target_obj_idx}"
-        if self._config.mode == "easy":
+        if self._config.mode in ("easy", "casual"):
             positions = [
                 [0.14, -1.0, 0.0325],
                 [0.15, -2.34, 0.0325],
@@ -272,6 +281,7 @@ class CausalRLRenderWrapper(gym.Wrapper):
 
         return self._get_frame(obs), reward, done, info
 
+
 class CausalRLStateOnlyWrapper(gym.Wrapper):
     def __init__(self, env, height=64, width=64):
         super().__init__(env)
@@ -310,8 +320,8 @@ class CausalRLStateOnlyWrapper(gym.Wrapper):
         gt[0][:28] = robot_state
         gt[0][-1] = 0
         for i in range(4):
-            gt[i + 1][28:38] = object_states[i * 10 : (i * 10) + 10]
-            gt[i+1][31] = 1
+            gt[i + 1][28:38] = object_states[i * 10: (i * 10) + 10]
+            gt[i + 1][31] = 1
             gt[i + 1][-1] = 1
 
         return {
@@ -331,8 +341,6 @@ class CausalRLStateOnlyWrapper(gym.Wrapper):
         else:
             info["is_success"] = False
         return self._get_frame(obs), reward, done, info
-
-
 
 
 class CausalRLRenderAndStateWrapper(gym.Wrapper):
@@ -380,7 +388,7 @@ class CausalRLRenderAndStateWrapper(gym.Wrapper):
         gt = np.zeros((5, 28))
         gt[0] = robot_state
         for i in range(4):
-            gt[i + 1][:10] = object_states[i * 10 : (i * 10) + 10]
+            gt[i + 1][:10] = object_states[i * 10: (i * 10) + 10]
 
         return {
             "image": frame,
@@ -404,12 +412,12 @@ class CausalRLRenderAndStateWrapper(gym.Wrapper):
 
 class SingleFingerReachTask(BaseTask):
     def __init__(
-        self,
-        variables_space="space_a_b",
-        fractional_reward_weight=1,
-        dense_reward_weights=np.array([100000, 0, 0, 0]),
-        joint_positions=None,
-        activate_sparse_reward=False,
+            self,
+            variables_space="space_a_b",
+            fractional_reward_weight=1,
+            dense_reward_weights=np.array([100000, 0, 0, 0]),
+            joint_positions=None,
+            activate_sparse_reward=False,
     ):
         """
         This task generator will generate a task for reaching.
@@ -536,11 +544,11 @@ class SingleFingerReachTask(BaseTask):
         """
         end_effector_positions_goal = desired_goal
         current_end_effector_positions = achieved_goal[
-            self._finger_idx * 3 : (self._finger_idx * 3) + 3
-        ]
+                                         self._finger_idx * 3: (self._finger_idx * 3) + 3
+                                         ]
         previous_end_effector_positions = self.previous_end_effector_positions[
-            self._finger_idx * 3 : (self._finger_idx * 3) + 3
-        ]
+                                          self._finger_idx * 3: (self._finger_idx * 3) + 3
+                                          ]
 
         previous_dist_to_goal = np.linalg.norm(
             end_effector_positions_goal - previous_end_effector_positions
@@ -556,7 +564,7 @@ class SingleFingerReachTask(BaseTask):
             -np.linalg.norm(
                 np.abs(
                     self._robot.get_latest_full_state()["velocities"][
-                        self._finger_idx * 3 : (self._finger_idx * 3) + 3
+                    self._finger_idx * 3: (self._finger_idx * 3) + 3
                     ]
                     - previous_end_effector_positions
                 ),
@@ -640,8 +648,8 @@ class SingleFingerReachTask(BaseTask):
         :return:
         """
         current_end_effector_positions = achieved_goal[
-            self._finger_idx * 3 : (self._finger_idx * 3) + 3
-        ]
+                                         self._finger_idx * 3: (self._finger_idx * 3) + 3
+                                         ]
         current_dist_to_goal = np.abs(desired_goal - current_end_effector_positions)
         current_dist_to_goal_mean = np.mean(current_dist_to_goal)
         return np.array(current_dist_to_goal_mean)
@@ -741,13 +749,13 @@ class SingleFingerReachTask(BaseTask):
         reset_observation_space = False
         if "number_of_obstacles" in interventions_dict:
             if (
-                int(interventions_dict["number_of_obstacles"])
-                > self.current_number_of_obstacles
+                    int(interventions_dict["number_of_obstacles"])
+                    > self.current_number_of_obstacles
             ):
                 reset_observation_space = True
                 for i in range(
-                    self.current_number_of_obstacles,
-                    int(interventions_dict["number_of_obstacles"]),
+                        self.current_number_of_obstacles,
+                        int(interventions_dict["number_of_obstacles"]),
                 ):
                     self._stage.add_rigid_general_object(
                         name="obstacle_" + str(i),
