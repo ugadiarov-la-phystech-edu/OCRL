@@ -5,7 +5,7 @@ import datetime
 
 session_name = datetime.datetime.now().strftime("%y-%m-%d-%H-%M-%S")
 
-available_gpus = [1,2,3,4,5,6,7]
+available_gpus = [0]
 seeds = [1234,2345,3456]
 
 with open("for_running.json", "r") as f:
@@ -13,17 +13,17 @@ with open("for_running.json", "r") as f:
 
 models = [
         "e2e cnn 0.01ent_coef",
-        "slate-transformer-0.01ent_coef",
+        # "slate-transformer-0.01ent_coef",
 ]
 for m_name in models:
     if not m_name in confs["ocrs"].keys():
         raise ValueError(f"model {m_name} is not predefined. Please use in {confs['ocrs'].keys()}.")
 
 envs = [
-        "targetN4-hard-sparse",
-        "pushN3-hard-sparse",
-        "oooC2S2S1-hard-sparse-oc",
-        "oooC2S2S1-hard-sparse",
+        "cw_target",
+        # "pushN3-hard-sparse",
+        # "oooC2S2S1-hard-sparse-oc
+        # "oooC2S2S1-hard-sparse",
 ]
 for e_name in envs:
     if not e_name in confs["envs"].keys():

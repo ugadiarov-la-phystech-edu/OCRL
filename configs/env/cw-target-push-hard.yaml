@@ -1,0 +1,18 @@
+defaults:
+    - _cw_env_base
+    - _self_
+name: CwTargetPush
+env: CwTargetEnv
+
+task: push
+tool_color: yellow
+goal_color: teal
+
+goal_position: [0., 0.08, 0.0325]
+goal_orientation: [0., 0., 1.]
+
+tool_position: [0., -0.08, 0.0325]
+tool_orientation: [0., 0., 1.]
+mode: hard
+
+render_mode: push-image

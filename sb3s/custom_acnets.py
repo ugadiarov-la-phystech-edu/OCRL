@@ -1,7 +1,8 @@
 import gym
 from torch import nn
 from stable_baselines3.common.policies import ActorCriticPolicy
-
+from stable_baselines3.td3.policies import TD3Policy
+from stable_baselines3.sac.policies import SACPolicy
 from utils.tools import *
 
 
@@ -94,6 +95,7 @@ class CustomNetwork(nn.Module):
 
     def forward_critic(self, features: Tensor) -> Tensor:
         return self.value_net(self.shared_net(features))
+    
 
 
 class CustomActorCriticPolicy(ActorCriticPolicy):
@@ -112,6 +114,71 @@ class CustomActorCriticPolicy(ActorCriticPolicy):
         self._config = config
 
         super(CustomActorCriticPolicy, self).__init__(
+            observation_space,
+            action_space,
+            lr_schedule,
+            net_arch,
+            activation_fn,
+            # Pass remaining arguments to base class
+            *args,
+            **kwargs,
+        )
+        # Disable orthogonal initialization
+        self.ortho_init = config.sb3_acnet.ortho_init
+
+    def _build_mlp_extractor(self) -> None:
+        self.mlp_extractor = CustomNetwork(self.features_dim, self._config.sb3_acnet)
+
+
+
+class CustomSACPolicy(SACPolicy):
+    def __init__(
+        self,
+        observation_space: gym.spaces.Space,
+        action_space: gym.spaces.Space,
+        lr_schedule: Callable[[float], float],
+        net_arch: Optional[List[Union[int, Dict[str, List[int]]]]] = None,
+        activation_fn: Type[nn.Module] = nn.Tanh,
+        config=None,
+        *args,
+        **kwargs,
+    ):
+        # configuration for mlp extractor
+        self._config = config
+
+        super(CustomSACPolicy, self).__init__(
+            observation_space,
+            action_space,
+            lr_schedule,
+            net_arch,
+            activation_fn,
+            # Pass remaining arguments to base class
+            *args,
+            **kwargs,
+        )
+        # Disable orthogonal initialization
+        self.ortho_init = config.sb3_acnet.ortho_init
+
+    def _build_mlp_extractor(self) -> None:
+        self.mlp_extractor = CustomNetwork(self.features_dim, self._config.sb3_acnet) 
+
+
+class CustomTDPolicy(TD3Policy):
+    def __init__(
+        self,
+        observation_space: gym.spaces.Space,
+        action_space: gym.spaces.Space,
+        lr_schedule: Callable[[float], float],
+        net_arch: Optional[List[Union[int, Dict[str, List[int]]]]] = None,
+        activation_fn: Type[nn.Module] = nn.Tanh,
+        config=None,
+        *args,
+        **kwargs,
+    ):
+        # configuration for mlp extractor
+        self._config = config
+
+        super(CustomTDPolicy, self).__init__(
             observation_space,
             action_space,
             lr_schedule,

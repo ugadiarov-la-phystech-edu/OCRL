@@ -85,7 +85,7 @@ def init_wandb(config, log_name, tags="", sync_tensorboard=None, monitor_gym=Non
         config, resolve=True, throw_on_missing=True
     )
     run = wandb.init(
-        entity=config.wandb.entity,
+        # entity=config.wandb.entity,
         project=config.wandb.project,
         config=wandb.config,
         name=log_name,

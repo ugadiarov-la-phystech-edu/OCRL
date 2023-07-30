@@ -7,5 +7,5 @@ algo_kwargs:
     buffer_size: 1000000
     gamma: 0.95
     batch_size: 256
-    ent_coef: 1e-3
+    ent_coef: 3e-3
     tau: 0.001

@@ -82,6 +82,20 @@
             "sb3_acnet": "identity_orthoinit",
             "tags": "\\'toplot,e2ecnn,singlevector,pooling-identity,0.01ent_coef\\'"
         },
+        "e2e sac cnn":{
+            "ocr": "naturecnn",
+            "pooling": "identity",
+            "sb3": "sac",
+            "sb3_acnet": "identity_orthoinit",
+            "tags": "\\'toplot,e2ecnn,singlevector,pooling-identity,0.03ent_coef\\'"
+        },
+        "e2e ddpg cnn":{
+            "ocr": "naturecnn",
+            "pooling": "identity",
+            "sb3": "ddpg",
+            "sb3_acnet": "identity_orthoinit",
+            "tags": "\\'toplot,e2ecnn,singlevector,pooling-identity,0.03ent_coef\\'"
+        },
         "e2e cnn mlp 0.01ent_coef":{
             "ocr": "naturecnn",
             "pooling": "mlp",
@@ -91,6 +105,22 @@
             "tags": "\\'toplot,cnn,pooling-mlp,0.01ent_coef\\'"
         },
 
+
+        "e2e sac cnn mlp 0.01ent_coef":{
+            "ocr": "naturecnn",
+            "pooling": "mlp",
+            "sb3": "sac",
+            "sb3.algo_kwargs.ent_coef": "0.01",
+            "sb3_acnet": "mlp",
+            "tags": "\\'toplot,cnn,pooling-mlp,0.01ent_coef\\'"
+        },
+        "e2e ddpg cnn mlp":{
+            "ocr": "naturecnn",
+            "pooling": "mlp",
+            "sb3": "ddpg",
+            "sb3_acnet": "mlp",
+            "tags": "\\'toplot,cnn,pooling-mlp\\'"
+        },
         "e2e cnn 0.03ent_coef":{
             "ocr": "naturecnn",
             "pooling": "identity",
@@ -169,6 +199,27 @@
             "pooling.pos_emb": "ape",
             "sb3": "ppo",
             "sb3.algo_kwargs.ent_coef": "0.01",
+            "sb3_acnet": "mlp",
+            "tags": "\\'toplot,e2ecnn,pooling-transformer,e2ecnn-trans,feat_size4,0.01ent_coef\\'"
+        },
+
+        "e2e sac cnn-transformer3-fs4":{
+            "ocr": "naturecnn",
+            "ocr.use_cnn_feat": "True",
+            "pooling": "transformer",
+            "pooling.num_layers": 3,
+            "pooling.pos_emb": "ape",
+            "sb3": "sac",
+            "sb3_acnet": "mlp",
+            "tags": "\\'toplot,e2ecnn,pooling-transformer,e2ecnn-trans,feat_size4,0.01ent_coef\\'"
+        },
+        "e2e ddpg cnn-transformer3-fs4":{
+            "ocr": "naturecnn",
+            "ocr.use_cnn_feat": "True",
+            "pooling": "transformer",
+            "pooling.num_layers": 3,
+            "pooling.pos_emb": "ape",
+            "sb3": "ddpg",
             "sb3_acnet": "mlp",
             "tags": "\\'toplot,e2ecnn,pooling-transformer,e2ecnn-trans,feat_size4,0.01ent_coef\\'"
         },
@@ -1361,6 +1412,42 @@
 
     },
     "envs":{
+        "cw_target" : {
+            "env": "cw-target-N4C4S1S1",
+            "env.rew_type": "sparse",
+            "env.tags": "\\'cwtargetN4C4S3S1e,sparserewtype\\'"
+        },
+
+        "cw_target_casual" : {
+            "env": "cw-target-N4C4S1S1",
+            "env.rew_type": "sparse",
+            "env.tags": "\\'cwtargetN4C4S3S1e,sparserewtype,casualmode\\'",
+            "env.mode": "casual"
+        },
+
+        "cw_target_hard" : {
+            "env": "cw-target-N4C4S1S1",
+            "env.rew_type": "sparse",
+            "env.mode": "hard",
+            "env.tags": "\\'cwtargetN4C4S3S1e,sparserewtype,hardmode\\'"
+        },
+        "cw_push" : {
+            "env": "cw-target-push",
+            "env.rew_type": "sparse",
+            "env.tags": "\\'cwpush,easymode,sparserewtype\\'"
+        },
+        "cw_push_casual" : {
+            "env": "cw-target-push",
+            "env.mode": "casual",
+            "env.rew_type": "sparse",
+            "env.tags": "\\'cwpush,casualmode,sparserewtype\\'"
+        },
+        "cw_push_hard" : {
+            "env": "cw-target-push",
+            "env.mode": "hard",
+            "env.rew_type": "sparse",
+            "env.tags": "\\'cwpush,hardmode,sparserewtype\\'"
+        },
         "targetN4-hard-sparse":{
             "env": "target-N4C4S3S1",
             "env.mode": "hard",

@@ -7,17 +7,20 @@ import stable_baselines3 as sb3
 import wandb
 from stable_baselines3.common.callbacks import EvalCallback
 from stable_baselines3.common.monitor import Monitor
+from stable_baselines3.sac.policies import CnnPolicy as SACPolicy
+from stable_baselines3.ddpg.policies import CnnPolicy as DDPGPolicy
 from stable_baselines3.common.utils import set_random_seed
 from stable_baselines3.common.vec_env import (DummyVecEnv, SubprocVecEnv,
                                               VecVideoRecorder)
+from stable_baselines3 import DDPG
 from wandb.integration.sb3 import WandbCallback
+
 
 import envs
 import sb3s
 from utils.tools import *
 
 log = logging.getLogger(__name__)
-
 
 @hydra.main(config_path="configs/", config_name="train_sb3")
 def main(config):
@@ -36,7 +39,7 @@ def main(config):
         monitor_gym=True,
     )
 
-    if config.num_envs == 1:
+    if config.num_envs == 1 or config.sb3.name == 'DDPG':
         def make_env(seed=0):
             if config.ocr.name == "GT":
                 config.env.render_mode = "state"
@@ -79,21 +82,30 @@ def main(config):
         "verbose": 1,
         "tensorboard_log": f"{wandb.run.dir}/tb_logs/",
         "device": config.device,
-        "policy_kwargs": dict(
-            features_extractor_class=sb3s.OCRExtractor,
-            features_extractor_kwargs=dict(config=config),
-        ),
+        
     }
+
     if hasattr(config.sb3, 'algo_kwargs'):
         model_kwargs = dict(model_kwargs, **config.sb3.algo_kwargs)
     if 'n_steps' in model_kwargs:
         model_kwargs['n_steps'] = model_kwargs['n_steps'] // config.num_envs
-    policy = sb3s.CustomActorCriticPolicy
-    model_kwargs['policy_kwargs']['config'] = config
+    if config.sb3.name == 'DDPG':
+        policy = DDPGPolicy
+    elif config.sb3.name == 'SAC':
+        policy = SACPolicy
+    else:
+        policy = sb3s.CustomActorCriticPolicy   
+        # model_kwargs['policy_kwargs']['config'] = config
+        model_kwargs["policy_kwargs"] = dict(
+            features_extractor_class=sb3s.OCRExtractor, 
+            features_extractor_kwargs=dict(config=config),
+            config=config
+        )
     if hasattr(config.sb3, 'algo_kwargs'):
         model_kwargs = dict(model_kwargs, **config.sb3.algo_kwargs)
     if 'n_steps' in model_kwargs:
         model_kwargs['n_steps'] = model_kwargs['n_steps'] // config.num_envs
+  
     model = getattr(sb3, config.sb3.name)(
         policy,
         env,

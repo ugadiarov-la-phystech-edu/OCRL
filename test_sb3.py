@@ -7,14 +7,13 @@ import stable_baselines3 as sb3
 from stable_baselines3.common.monitor import Monitor
 from stable_baselines3.common.evaluation import evaluate_policy
 from stable_baselines3.common.vec_env import DummyVecEnv, VecVideoRecorder
-
+from stable_baselines3 import ddpg
 import envs
 from utils.tools import *
 
 from sb3s import OCRExtractor
 
 log = logging.getLogger(__name__)
-
 
 @hydra.main(config_path="configs/", config_name="test_sb3")
 def main(config):

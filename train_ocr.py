@@ -62,7 +62,7 @@ def main(config):
                 model, best_val_loss = eval_and_save(model, val_dl, epoch, step, best_val_loss, config)
                 model.train()
         if hasattr(model, "scheduler"):
-            self.scheduler.step()
+            model.scheduler.step()
         epoch += 1
         wandb.log({"epoch": epoch}, step=step)
 
