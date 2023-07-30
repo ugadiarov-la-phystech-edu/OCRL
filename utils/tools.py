@@ -233,12 +233,12 @@ def load(model, agent_training=False, resume_checkpoint=None, resume_run_path=No
             ).name,
             map_location=next(model._module.parameters()).device,
         )
-    elif (
-        model_checkpoint := Path(wandb.run.dir) / "checkpoints" / "model_latest.pth"
-    ).exists():
-        checkpoint = torch.load(
-            model_checkpoint, map_location=next(model._module.parameters()).device
-        )
+    else:
+        model_checkpoint = Path(wandb.run.dir) / "checkpoints" / "model_latest.pth"
+        if model_checkpoint.exists():
+            checkpoint = torch.load(
+                model_checkpoint, map_location=next(model._module.parameters()).device
+            )
 
     if checkpoint is not None:
         step = checkpoint["step"]
