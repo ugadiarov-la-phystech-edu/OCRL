@@ -8,6 +8,7 @@ session_name = datetime.datetime.now().strftime("%y-%m-%d-%H-%M-%S")
 
 available_gpus = [0]
 seeds = [1234, 64, 49]
+# seeds = [42]
 
 with open("for_running.json", "r") as f:
     confs = json.load(f)
@@ -19,11 +20,16 @@ models = [
         # "e2e cnn-transformer3-fs4 0.01ent_coef",
         # "e2e sac cnn-transformer3-fs4",
         # "e2e ddpg cnn-transformer3-fs4",
-        "e2e cnn mlp 0.01ent_coef",
+        # "e2e cnn mlp 0.01ent_coef",
         # "e2e sac cnn mlp 0.01ent_coef",
         # "e2e ddpg cnn mlp",
         # "e2e ddpg cnn",
-        # "e2e cnn-transformer7,"
+        # "e2e cnn-transformer-fs4 0.05ent_coef",
+        # "e2e cnn-transformer7",
+        # "e2e cnn-transformer5",
+        # "e2e cnn-transformer3",
+        # "multiple cnn-transformer 0.01ent_coef 8192n_steps",
+        "multiple cnn-transformer 0.01ent_coef",
         # "slate-transformer-0.01ent_coef",
 ]
 for m_name in models:
@@ -32,11 +38,11 @@ for m_name in models:
 
 envs = [
         # "cw_target",
-        "cw_push",
-        "cw_push_casual"
+        # "cw_push",
+        # "cw_push_casual"
         # "cw_push_hard",
-        # "cw_target_hard",
-        # "cw_target_casual",
+        "cw_target_hard",
+        "cw_target_casual",
         # "pushN3-hard-sparse",
         # "oooC2S2S1-hard-sparse-oc
         # "oooC2S2S1-hard-sparse",

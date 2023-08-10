@@ -20,6 +20,7 @@ def main(config):
     log_name = get_log_prefix(config)
     log_name += f"-{config.dataset.name}"
     tags = config.tags.split(",") + config.dataset.tags.split(",")
+    tags = None if tags == '' else tags
     init_wandb(config, "TrainOCR-" + log_name, tags=tags)
     np.random.seed(config.seed)
     torch.manual_seed(config.seed)
@@ -48,9 +49,12 @@ def main(config):
         model.train()
         bar = tqdm.tqdm(total=len(train_dl), smoothing=0)
         for idx, batch in enumerate(train_dl):
+            masks = None
+            if "masks" in batch:
+                masks = to_device(batch["masks"].permute(0,1,4,2,3), config.device)
             metrics = model.update(
                     to_device(batch["obss"], config.device),
-                    to_device(batch["masks"].permute(0,1,4,2,3), config.device),
+                    masks,
                     step
             )
             wandb.log({f"train/{k}": v for k, v in metrics.items()}, step=step)
@@ -73,9 +77,12 @@ def eval_and_save(model, val_dl, epoch, step, best_val_loss, config):
     with torch.no_grad() if config.ocr.name != 'Iodine' else nullcontext():
         metrics = []
         for idx, batch in enumerate(val_dl):
+            masks = None
+            if "masks" in batch:
+                masks = to_device(batch["masks"].permute(0,1,4,2,3), config.device)
             m = model.get_loss(
                     to_device(batch["obss"], config.device),
-                    to_device(batch["masks"].permute(0,1,4,2,3), config.device),
+                    masks,
             )
             # This is just for iodine since we can't use no_grad, but prevents us from using too much gpu
             m['loss'] = m['loss'].detach()

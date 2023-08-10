@@ -1,0 +1,6 @@
+name: Shapes2d_Nav_5x5
+dataroot: /code/data/shapes_nav_5x5 
+tags: "shapes2d,nav5x5"
+num_objs: 5
+obs_size: 64
+obs_channels: 3

@@ -195,7 +195,7 @@ class SLATE_Module(nn.Module):
             else:
                 return self._get_slots(obs)
 
-    def get_loss(self, obs: Tensor, masks: Tensor, with_rep=False, with_mse=False) -> dict:
+    def get_loss(self, obs: Tensor, masks: Optional[Tensor], with_rep=False, with_mse=False) -> dict:
         # get z
         z, z_hard = self._get_z(obs)
         B, _, H_enc, W_enc = z.size()
@@ -204,13 +204,15 @@ class SLATE_Module(nn.Module):
         dvae_mse = ((obs - recon) ** 2).sum() / obs.shape[0]
         # get slots
         slots, attns, cross_entropy = self._get_slots(obs, z_hard=z_hard, with_attns=True, with_ce=True)
-        attns = attns.transpose(-1, -2).reshape(
-            obs.shape[0], slots.shape[1], 1, obs.shape[2], obs.shape[3]
-        )
-        fg_mask = (1 - masks[:,-1].unsqueeze(1))
-        attns = attns * fg_mask
-        attns = torch.cat([attns, fg_mask], dim=1)
-        ari = np.mean(calculate_ari(masks, attns))
+        ari = None
+        if masks is not None:
+            attns = attns.transpose(-1, -2).reshape(
+                obs.shape[0], slots.shape[1], 1, obs.shape[2], obs.shape[3]
+            )
+            fg_mask = (1 - masks[:,-1].unsqueeze(1))
+            attns = attns * fg_mask
+            attns = torch.cat([attns, fg_mask], dim=1)
+            ari = np.mean(calculate_ari(masks, attns))
 
         if self._use_bcdec:
             recon = self._dec(slots)
@@ -218,13 +220,11 @@ class SLATE_Module(nn.Module):
             metrics = {
                 "loss": mse,
                 "mse": mse.detach(),
-                "ari": ari,
             }
         else:
             metrics = {
                 "loss": dvae_mse + cross_entropy,
                 "dvae_mse": dvae_mse.detach(),
-                "ari": ari,
                 "cross_entropy": cross_entropy.detach(),
                 "tau": torch.Tensor([self._tau]),
             }
@@ -233,8 +233,9 @@ class SLATE_Module(nn.Module):
                 recon_tf = self._gen_imgs(slots)
                 mse = ((obs - recon_tf) ** 2).sum() / obs.shape[0]
                 metrics.update({"mse": mse.detach()})
-
-        return (metrics, zs) if with_rep else metrics
+        if ari is not None:
+            metrics['ari'] = ari
+        return (metrics, z) if with_rep else metrics
 
     def get_samples(self, obs: Tensor) -> dict:
         # get z

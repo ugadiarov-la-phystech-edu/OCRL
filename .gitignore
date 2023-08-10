@@ -6,6 +6,9 @@ trained_models/
 # running logs
 #run.sh
 
+*.out
+data
+
 # dataset or logs
 datasets/
 outputs/

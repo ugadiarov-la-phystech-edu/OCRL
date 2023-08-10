@@ -18,7 +18,7 @@ from torch.utils.data import DataLoader
 from scipy.optimize import linear_sum_assignment
 from sklearn.metrics import adjusted_rand_score
 
-from utils.datasets import DataSet
+from utils.datasets import DataSet, FolderDataset
 
 
 Tensor = TypeVar("torch.tensor")
@@ -153,27 +153,32 @@ def preprocessing_obs(obs, device, type="image"):
 
 # To get data from files
 def get_dataloaders(config, batch_size, num_workers, replace=False):
-    if hasattr(config, "datadir"):
-        datafile = config.datadir
-    else:
-        parent_dir = Path(__file__).resolve().parents[1]
-        (parent_dir / config.dataset_dir).mkdir(parents=True, exist_ok=True)
-        datafile = parent_dir / config.dataset_dir / config.dataset_checkpoint.file
-        if (not datafile.is_file()) or replace:
-            entity = config.dataset_checkpoint.entity
-            project = config.dataset_checkpoint.project
-            run_id = config.dataset_checkpoint.run_id
-            file_path = config.dataset_checkpoint.file
-            api = wandb.Api()
-            run = api.run(f"{entity}/{project}/{run_id}")
-            logging.info(f"While download dataset (must be patient!)")
-            run.file(file_path).download(root=datafile.parents[0], replace=True)
+    if hasattr(config, 'dataroot'):
+        train_dataset = FolderDataset(os.path.join(config.dataroot, 'train'))
+        val_dataset = FolderDataset(os.path.join(config.dataroot, 'val'))
+    else: 
+        if hasattr(config, "datadir"):
+            datafile = config.datadir
+        else:
+            parent_dir = Path(__file__).resolve().parents[1]
+            (parent_dir / config.dataset_dir).mkdir(parents=True, exist_ok=True)
+            datafile = parent_dir / config.dataset_dir / config.dataset_checkpoint.file
+            if (not datafile.is_file()) or replace:
+                entity = config.dataset_checkpoint.entity
+                project = config.dataset_checkpoint.project
+                run_id = config.dataset_checkpoint.run_id
+                file_path = config.dataset_checkpoint.file
+                api = wandb.Api()
+                run = api.run(f"{entity}/{project}/{run_id}")
+                logging.info(f"While download dataset (must be patient!)")
+                run.file(file_path).download(root=datafile.parents[0], replace=True)
+        
+        f = h5py.File(datafile, "r")
+        train_dataset = DataSet(f["TrainingSet"])
+        val_dataset = DataSet(f["ValidationSet"])
 
-    f = h5py.File(datafile, "r")
-    train_dl = DataLoader(
-        DataSet(f["TrainingSet"]), batch_size, num_workers=num_workers, shuffle=True
-    )
-    val_dl = DataLoader(DataSet(f["ValidationSet"]), batch_size)
+    train_dl = DataLoader(train_dataset, batch_size, num_workers=num_workers, shuffle=True)
+    val_dl = DataLoader(val_dataset, batch_size)
     return train_dl, val_dl
 
 

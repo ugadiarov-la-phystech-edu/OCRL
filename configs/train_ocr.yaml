@@ -6,7 +6,7 @@ defaults:
   - wandb: train_ocr
 
 eval_interval: 1000
-
+tags: 'slate'
 hydra:
   run:
     dir: ./outputs/train_ocr/${ocr.name}-${dataset.name}/hydra/${now:%Y-%m-%d_%H-%M-%S}
