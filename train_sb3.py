@@ -103,6 +103,7 @@ def main(config):
     )
     model.learn(
         total_timesteps=config.max_steps,
+        log_interval=config.log_interval,
         callback=[
             WandbCallback(
                 gradient_save_freq=config.wandb.log_gradient_freq,
