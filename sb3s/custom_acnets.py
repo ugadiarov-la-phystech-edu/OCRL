@@ -2,6 +2,7 @@ import gym
 from torch import nn
 from stable_baselines3.common.policies import ActorCriticPolicy
 
+from sb3s.gnn import GNN
 from utils.tools import *
 
 
@@ -126,3 +127,87 @@ class CustomActorCriticPolicy(ActorCriticPolicy):
 
     def _build_mlp_extractor(self) -> None:
         self.mlp_extractor = CustomNetwork(self.features_dim, self._config.sb3_acnet)
+
+
+class GNNExtractor(nn.Module):
+    def __init__(
+        self,
+        num_slots: int,
+        slot_size: int,
+        sb3_acnet_config: dict,
+    ):
+        super(GNNExtractor, self).__init__()
+        self.latent_dim_pi = slot_size
+        self.latent_dim_vf = slot_size
+
+        self.policy_gnn = GNN(
+            input_dim=slot_size,
+            hidden_dim=sb3_acnet_config.hidden_dim,
+            action_dim=0,
+            num_objects=num_slots,
+            ignore_action=True,
+            copy_action=False,
+            act_fn=sb3_acnet_config.act_fn,
+            layer_norm=sb3_acnet_config.layer_norm,
+            num_layers=sb3_acnet_config.num_layers,
+            use_interactions=sb3_acnet_config.use_interactions,
+            edge_actions=False,
+            output_dim=None)
+
+        self.value_gnn = GNN(
+            input_dim=slot_size,
+            hidden_dim=sb3_acnet_config.hidden_dim,
+            action_dim=0,
+            num_objects=num_slots,
+            ignore_action=True,
+            copy_action=False,
+            act_fn=sb3_acnet_config.act_fn,
+            layer_norm=sb3_acnet_config.layer_norm,
+            num_layers=sb3_acnet_config.num_layers,
+            use_interactions=sb3_acnet_config.use_interactions,
+            edge_actions=False,
+            output_dim=None)
+
+    def forward(self, features: Tensor) -> Tuple[Tensor, Tensor]:
+        return (self.policy_gnn(features, action=None)[0].mean(dim=1),
+                self.value_gnn(features, action=None)[0].mean(dim=1))
+
+    def forward_actor(self, features: Tensor) -> Tensor:
+        return self.policy_gnn(features, action=None)[0].mean(dim=1)
+
+    def forward_critic(self, features: Tensor) -> Tensor:
+        return self.value_gnn(features, action=None)[0].mean(dim=1)
+
+
+class GNNActorCriticPolicy(ActorCriticPolicy):
+    def __init__(
+        self,
+        observation_space: gym.spaces.Space,
+        action_space: gym.spaces.Space,
+        lr_schedule: Callable[[float], float],
+        net_arch: Optional[List[Union[int, Dict[str, List[int]]]]] = None,
+        activation_fn: Type[nn.Module] = None,
+        config=None,
+        *args,
+        **kwargs,
+    ):
+        # configuration for mlp extractor
+        self._config = config
+
+        super(GNNActorCriticPolicy, self).__init__(
+            observation_space,
+            action_space,
+            lr_schedule,
+            net_arch,
+            activation_fn,
+            # Pass remaining arguments to base class
+            *args,
+            **kwargs,
+        )
+        # Disable orthogonal initialization
+        self.ortho_init = config.sb3_acnet.ortho_init
+
+    def _build_mlp_extractor(self) -> None:
+        self.mlp_extractor = GNNExtractor(
+            self._config.ocr.slotattr.num_slots, self._config.ocr.slotattr.slot_size, self._config.sb3_acnet
+        )

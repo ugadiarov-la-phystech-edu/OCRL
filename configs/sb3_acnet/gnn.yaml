@@ -1,0 +1,13 @@
+defaults:
+  - _base
+  - _self_
+
+name: 'GNN'
+
+ortho_init: False
+
+hidden_dim: 512
+act_fn: 'relu'
+layer_norm: true
+num_layers: 3
+use_interactions: true
