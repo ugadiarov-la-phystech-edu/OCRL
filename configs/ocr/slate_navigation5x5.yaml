@@ -7,19 +7,19 @@ use_cnn_feat: False
 use_bcdec: False
 
 dvae:
-  vocab_size: 32
-  d_model: 128
+  vocab_size: 4096
+  d_model: 192
 
 cnn:
   hidden_size: 64
 
 slotattr:
-  num_iterations: 5
+  num_iterations: 3
   num_slots: 6
   num_slot_heads: 1
-  slot_size: 128
-  mlp_hidden_size: 256
-  pos_channels: 5
+  slot_size: 192
+  mlp_hidden_size: 192
+  pos_channels: 4
 
 tfdec:
   num_dec_blocks: 4

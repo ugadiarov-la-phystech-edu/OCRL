@@ -1,0 +1,11 @@
+defaults:
+  - _synthetic_env_base
+  - _self_
+name: Navigation5x5
+tags: "navigation5x5"
+datadir: "datasets/Navigation5x5-Seed0-Tr100000-Val10000.hdf5"
+dataset_checkpoint:
+    entity: ''
+    project: ''
+    run_id: ''
+    file: 'Navigation5x5-Seed0-Tr100000-Val10000.hdf'
