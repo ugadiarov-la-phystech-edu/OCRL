@@ -23,4 +23,5 @@ gym_unity
 pandas
 tensorboard
 causal_world
+opencv-python==4.7.0.72
 timm==0.4.12 # for pytorch 2.
