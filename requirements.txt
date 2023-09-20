@@ -6,6 +6,8 @@ torch
 wandb
 hydra-core
 omegaconf
+matplotlib
+scikit-image
 numpy==1.23.1 # np.bool issues
 pillow
 moviepy
