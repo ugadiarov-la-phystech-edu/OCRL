@@ -249,8 +249,13 @@ class Shapes2d(gym.Env):
 
         return image
 
-    def render(self, mode="human"):
-        raise NotImplementedError()
+    def render(self, mode=None):
+        if self.observation_type == 'squares':
+            return self.render_squares()
+        elif self.observation_type == 'shapes':
+            return self.render_shapes()
+        else:
+            assert False, f'Invalid observation type: {self.observation_type}.'
 
     def reset(self):
         state = np.full(shape=[self.w, self.w], fill_value=-1, dtype=np.int32)
@@ -420,6 +425,7 @@ class Shapes2d(gym.Env):
             done = True
 
         info = {Shapes2d.MOVED_BOXES_KEY: moved_boxes}
+        info['is_success'] = self.n_boxes_in_game == 0
         observation = self._get_observation() if return_observation else None
 
         return observation, reward, done, info

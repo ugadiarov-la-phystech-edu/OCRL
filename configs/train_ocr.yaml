@@ -6,6 +6,7 @@ defaults:
   - wandb: train_ocr
 
 eval_interval: 1000
+eval_only: False
 tags: 'slate'
 hydra:
   run:

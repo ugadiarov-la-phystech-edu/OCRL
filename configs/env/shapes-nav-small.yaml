@@ -1,0 +1,7 @@
+defaults:
+  - _shapes_env_base
+  - _self_
+name: Navigation5x5_Shapes
+use_agent: False
+env: ShapesEnv
+task: 'nav_small'

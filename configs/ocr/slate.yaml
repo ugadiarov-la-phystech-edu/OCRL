@@ -19,7 +19,7 @@ slotattr:
   num_slot_heads: 1
   slot_size: 64
   mlp_hidden_size: 256
-  pos_channels: 8
+  pos_channels: 5
 
 tfdec:
   num_dec_blocks: 4

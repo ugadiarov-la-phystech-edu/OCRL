@@ -1,0 +1,8 @@
+defaults:
+  - _shapes_env_base
+  - _self_
+name: Navigation10x10_Shapes
+use_agent: False
+env: ShapesEnv
+task: 'nav_large'
+obs_size: 96

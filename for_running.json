@@ -764,6 +764,28 @@
             "pooling.ocr_checkpoint.file": "checkpoints/model_333336.pth",
             "tags": "\\'toplot,slate,ocr,tfdec,pooling-transformer,cnn_hsize64,slotsize192,mlpsize192,slotiter3\\'"
         },
+        "slate-nav-5x5":{
+            "ocr": "slate",
+            "pooling": "transformer",
+            "sb3": "ppo",
+            "sb3_acnet": "mlp",
+            "pooling.ocr_checkpoint.entity": "v3code",
+            "pooling.ocr_checkpoint.project": "ocrl",
+            "pooling.ocr_checkpoint.run_id": "2gj391lh",
+            "pooling.ocr_checkpoint.file": "checkpoints/model_best.pth",
+            "tags": "\\'toplot,slate,ocr,tfdec,pooling-transformer,navigation5x5\\'"
+        },
+        "slate-nav-10x10":{
+            "ocr": "slate",
+            "pooling": "transformer",
+            "sb3": "ppo",
+            "sb3_acnet": "mlp",
+            "pooling.ocr_checkpoint.entity": "v3code",
+            "pooling.ocr_checkpoint.project": "ocrl",
+            "pooling.ocr_checkpoint.run_id": "6x4tdp7v",
+            "pooling.ocr_checkpoint.file": "checkpoints/model_best.pth",
+            "tags": "\\'toplot,slate,ocr,tfdec,pooling-transformer,navigation5x5\\'"
+        },
         "slate-transformer-8slots":{
             "ocr": "slate",
             "ocr.slotattr.num_slots": "8",
@@ -1418,6 +1440,14 @@
             "env.tags": "\\'cwtargetN4C4S3S1e,sparserewtype\\'"
         },
 
+        "navigation10x10": {
+            "env": "shapes-nav-large",
+            "env.tags": "\\'shapes,navigation10x10\\'"
+        },
+        "navigation5x5": {
+            "env": "shapes-nav-small",
+            "env.tags": "\\'shapes,navigation5x5\\'"
+        },
         "cw_target_casual" : {
             "env": "cw-target-N4C4S1S1",
             "env.rew_type": "sparse",

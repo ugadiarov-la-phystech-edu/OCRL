@@ -14,6 +14,13 @@ from utils.tools import *
 
 log = logging.getLogger(__name__)
 
+def visualize_model(model, dataloader):
+    model.eval()
+    with torch.no_grad():
+        for idx, batch in enumerate(dataloader):
+            metrics = model.get_loss(to_device(batch, config.device))
+            wandb.log({f"train/{k}": v for k, v in metrics.items()}, step=step)
+
 
 @hydra.main(config_path="configs/", config_name="train_ocr")
 def main(config):
@@ -43,7 +50,13 @@ def main(config):
     step, epoch, best_val_loss = load(model,
             resume_checkpoint=config.load.resume_checkpoint,
             resume_run_path=config.load.resume_run_path)
-
+    
+    
+    if config.eval_only:
+        model.eval()
+        eval_and_save(model, val_dl, epoch, step, math.inf, config)
+        wandb.finish()
+        return
     # Train
     while epoch < config.max_epochs:
         model.train()

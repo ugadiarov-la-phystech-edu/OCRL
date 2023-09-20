@@ -1,0 +1,9 @@
+obs_size: 64
+obs_channels: 3
+state_size: 5
+num_stacked_obss: 1
+tags: ""
+mode: "easy"
+rew_type: "default"
+render_mode: "image"
+task_kwargs: {}

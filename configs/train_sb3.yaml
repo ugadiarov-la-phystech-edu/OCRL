@@ -9,7 +9,7 @@ defaults:
   - env: ???
   - wandb: train_sb3
 
-max_steps: 2e6
+max_steps: 30e6
 
 model_name: null
 session_name: null

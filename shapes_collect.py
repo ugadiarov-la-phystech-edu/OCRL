@@ -43,7 +43,7 @@ def collect_data():
             
             obs, _, done, _ = env.step(action)
             obs_dir = os.path.join(ep_dir, f'st_{step}.npy')
-            save_obs(obs['image'], obs_dir)
+            save_obs(obs, obs_dir)
             observations.append(obs_dir)
             
             if done:
