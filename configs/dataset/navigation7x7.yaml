@@ -1,0 +1,11 @@
+defaults:
+  - _synthetic_env_base
+  - _self_
+name: Navigation7x7
+tags: "navigation7x7"
+datadir: "datasets/Navigation7x7-Seed0-Tr100000-Val10000.hdf5"
+dataset_checkpoint:
+    entity: ''
+    project: ''
+    run_id: ''
+    file: 'Navigation7x7-Seed0-Tr100000-Val10000.hdf'
