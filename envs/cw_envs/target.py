@@ -287,10 +287,12 @@ class SingleFingerCausalWorldWrapper(gym.Wrapper):
                     break
             cart_positions.append(cart)
         return [cart2cyl(p) for p in cart_positions]
-    
+
     def _get_target_obj_index(self):
         if self._config.mode == "casual":
-            return 0
+            if self._persistent_target_idx is None:
+                self._persistent_target_idx = np.random.randint(self.num_objects)
+            return self._persistent_target_idx
         return np.random.randint(self.num_objects)
 
     def reset(self, **kwargs):
