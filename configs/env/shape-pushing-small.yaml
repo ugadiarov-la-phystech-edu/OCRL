@@ -1,0 +1,7 @@
+defaults:
+  - _shapes_env_base
+  - _self_
+name: Pushing7x7_Shapes
+use_agent: False
+env: ShapesEnv
+task: 'push_small'
