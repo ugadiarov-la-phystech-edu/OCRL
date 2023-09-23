@@ -80,7 +80,7 @@ register(
 
 register(
     'Pushing7x7-v0',
-    entry_point='envs.shapes2d:Shapes2d',
+    entry_point='envs.shapes_envs.shapes2d:Shapes2d',
     max_episode_steps=100,
     kwargs={
         'observation_type': 'shapes',
