@@ -769,11 +769,10 @@
             "pooling": "transformer",
             "sb3": "ppo",
             "sb3_acnet": "mlp",
-            "pooling.ocr_checkpoint.entity": "v3code",
-            "pooling.ocr_checkpoint.project": "ocrl",
-            "pooling.ocr_checkpoint.run_id": "2gj391lh",
-            "pooling.ocr_checkpoint.file": "checkpoints/model_best.pth",
-            "tags": "\\'toplot,slate,ocr,tfdec,pooling-transformer,navigation5x5\\'"
+            "pooling.ocr_checkpoint.local_file": "navigation5x5/model_best.pth",
+            "tags": "\\'toplot,slate,ocr,tfdec,pooling-transformer,navigation5x5\\'",
+            "wandb.entity": "ulaelfray",
+            "wandb.project": "navigation5x5_ppo-transformer-slate"
         },
         "slate-nav-10x10":{
             "ocr": "slate",
@@ -785,6 +784,17 @@
             "pooling.ocr_checkpoint.run_id": "6x4tdp7v",
             "pooling.ocr_checkpoint.file": "checkpoints/model_best.pth",
             "tags": "\\'toplot,slate,ocr,tfdec,pooling-transformer,navigation5x5\\'"
+        },
+        "slate-reaching":{
+            "ocr": "slate_reaching",
+            "pooling": "transformer",
+            "sb3": "ppo",
+            "sb3_acnet": "mlp",
+            "pooling.ocr_checkpoint.local_file": "reaching-hard_slate/model_best.pth",
+            "tags": "\\'slate-transformer-ppo,reaching-hard\\'",
+            "wandb.entity": "ulaelfray",
+            "wandb.project": "reaching-hard_ppo-transformer-slate"
+
         },
         "slate-transformer-8slots":{
             "ocr": "slate",
@@ -1460,6 +1470,12 @@
             "env.rew_type": "sparse",
             "env.mode": "hard",
             "env.tags": "\\'cwtargetN4C4S3S1e,sparserewtype,hardmode\\'"
+        },
+        "cw_target_hard_custom" : {
+            "env": "cw-target-N4C4S1S1-hard-custom",
+            "env.rew_type": "sparse",
+            "env.mode": "hard",
+            "env.tags": "\\'cwtargetN4C4S3S1e_custom,sparserewtype,hardmode\\'"
         },
         "cw_push" : {
             "env": "cw-target-push",

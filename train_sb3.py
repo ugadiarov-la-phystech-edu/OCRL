@@ -66,12 +66,12 @@ def main(config):
             [make_env(i, seed=config.seed) for i in range(config.num_envs)],
             start_method="fork",
         )
-    env = VecVideoRecorder(
-        env,
-        f"{wandb.run.dir}/videos/",
-        record_video_trigger=lambda x: x % config.video.interval == 0,
-        video_length=config.video.length,
-    )
+    # env = VecVideoRecorder(
+    #     env,
+    #     f"{wandb.run.dir}/videos/",
+    #     record_video_trigger=lambda x: x % config.video.interval == 0,
+    #     video_length=config.video.length,
+    # )
     if config.ocr.name == "GT":
         config.env.render_mode = "state"
     eval_env = getattr(envs, config.env.env)(

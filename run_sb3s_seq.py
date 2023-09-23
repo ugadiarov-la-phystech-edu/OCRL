@@ -1,5 +1,6 @@
 import os
 import subprocess
+import sys
 import time
 import json
 import datetime
@@ -32,6 +33,7 @@ models = [
         # "multiple cnn-transformer 0.01ent_coef",
         # "slate-nav-5x5"
         "slate-nav-10x10"
+        # "slate-reaching"
         # "slate-transformer-0.01ent_coef",
 ]
 for m_name in models:
@@ -47,6 +49,7 @@ envs = [
         # "cw_target_casual",
         # "navigation5x5"
         "navigation10x10",
+        # "cw_target_hard_custom"
         # "pushN3-hard-sparse",
         # "oooC2S2S1-hard-sparse-oc
         # "oooC2S2S1-hard-sparse",
@@ -72,7 +75,7 @@ for m_name in models:
         # os.system(f"tmux new-window -t {session_name}")
         for s_idx, _seed in enumerate(seeds):
             proc_name = f'{m_name}_{e_name}_{_seed}'
-            with open(f'{proc_name}.out', 'w') as f:
+            with open(f'{proc_name}.out', 'wb') as f:
                 dev = available_gpus[cnt % len(available_gpus)]
                 additional_args = f"device={dev} "
                 env_conf = confs["envs"][e_name]
@@ -80,8 +83,11 @@ for m_name in models:
                     additional_args += f"{key}={value} "
                 # os.system(f"tmux split-window -v -p 140 -t {session_name}:{win_idx+1}")
                 print(f"starting {command} {additional_args} seed={_seed}")
-                proc = subprocess.Popen(f"PYTHONPATH=. {command} {additional_args} seed={_seed}", shell=True, stdout=f.fileno(), stderr=f.fileno())
-                processes[proc_name] = proc 
+                proc = subprocess.Popen(f"PYTHONPATH=. {command} {additional_args} seed={_seed}", shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+                processes[proc_name] = proc
+                for c in iter(lambda: proc.stdout.read(1), b""):
+                    sys.stdout.buffer.write(c)
+                    f.write(c)
                 # os.system( f"""tmux send-keys -t {session_name}:{win_idx+1}.{s_idx+1} "{command} {additional_args} seed={_seed}" Enter"""
                 # )
                 cnt += 1

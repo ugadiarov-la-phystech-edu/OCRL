@@ -18,10 +18,11 @@ video:
   interval: 5000
   length: 1000
 
+log_interval: 1
 viz_interval: 30000
 eval:
-    freq: 1000
-    n_episodes: 100
+    freq: 625
+    n_episodes: 30
 
 hydra:
   run:
