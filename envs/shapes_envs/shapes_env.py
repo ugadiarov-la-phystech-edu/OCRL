@@ -14,6 +14,8 @@ def resolve_task(task, **task_kwargs):
         return gym.make('Navigation10x10-v0', **task_kwargs)
     elif task == 'push_small':
         return gym.make('Pushing7x7-v0', **task_kwargs)
+    elif task == 'push-no-agent_small':
+        return gym.make('PushingNoAgent5x5-v0', **task_kwargs)
     else:
         ValueError(f"Task {task} is not supported")
         
