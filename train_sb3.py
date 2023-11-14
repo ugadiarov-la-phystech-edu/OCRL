@@ -70,7 +70,7 @@ def main(config):
         def make_env(seed=0):
             if config.ocr.name == "GT":
                 config.env.render_mode = "state"
-            if config.env.name.startswith('Navigation'):
+            if config.env.name.startswith('Navigation') or config.env.name.startswith('Pushing'):
                 env = gym.make(config.env.name)
                 env = WarpFrame(env, width=config.env.obs_size, height=config.env.obs_size)
                 env = FailOnTimelimitWrapper(env)
@@ -91,7 +91,7 @@ def main(config):
             def _init():
                 if config.ocr.name == "GT":
                     config.env.render_mode = "state"
-                if config.env.name.startswith('Navigation'):
+                if config.env.name.startswith('Navigation') or config.env.name.startswith('Pushing'):
                     env = gym.make(config.env.name)
                     env = WarpFrame(env, width=config.env.obs_size, height=config.env.obs_size)
                     env = FailOnTimelimitWrapper(env)
@@ -115,7 +115,7 @@ def main(config):
     # )
     if config.ocr.name == "GT":
         config.env.render_mode = "state"
-    if config.env.name.startswith('Navigation'):
+    if config.env.name.startswith('Navigation') or config.env.name.startswith('Pushing'):
         eval_env = gym.make(config.env.name)
         eval_env = WarpFrame(eval_env, width=config.env.obs_size, height=config.env.obs_size)
         eval_env = FailOnTimelimitWrapper(eval_env)
