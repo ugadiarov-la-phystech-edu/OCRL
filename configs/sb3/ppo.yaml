@@ -8,3 +8,4 @@ algo_kwargs:
     vf_coef: 0.5
     target_kl: null
     clip_range: 0.2
+    n_epochs: 10
