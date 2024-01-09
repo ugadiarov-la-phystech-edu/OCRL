@@ -84,6 +84,9 @@ def init_wandb(config, log_name, tags="", sync_tensorboard=None, monitor_gym=Non
     wandb.config = omegaconf.OmegaConf.to_container(
         config, resolve=True, throw_on_missing=True
     )
+    if config.wandb.name is not None:
+        log_name = config.wandb.name
+
     run = wandb.init(
         entity=config.wandb.entity,
         project=config.wandb.project,
@@ -272,6 +275,7 @@ def save(
     episode=0,
     agent_training=False,
     best=False,
+    save_step=True,
 ):
     sub_dir = "checkpoints"
     model_dir = Path(wandb.run.dir) / sub_dir
@@ -280,8 +284,10 @@ def save(
     else:
         checkpoint = {"step": step, "epoch": epoch, "best_val_loss": best_val_loss}
     checkpoint.update(model.save())
-    torch.save(checkpoint, model_dir / f"model_{step}.pth")
-    wandb.save(f"{sub_dir}/model_{step}.pth")
+    if save_step:
+        torch.save(checkpoint, model_dir / f"model_{step}.pth")
+        wandb.save(f"{sub_dir}/model_{step}.pth")
+
     torch.save(checkpoint, model_dir / f"model_latest.pth")
     wandb.save(f"{sub_dir}/model_latest.pth")
     if best:

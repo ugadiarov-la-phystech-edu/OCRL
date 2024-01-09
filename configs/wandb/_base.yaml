@@ -4,3 +4,4 @@ log: all
 log_gradient_freq: 0
 offline: False
 run_id: null
+name: null

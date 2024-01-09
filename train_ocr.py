@@ -111,6 +111,7 @@ def eval_and_save(model, val_dl, epoch, step, best_val_loss, config):
         epoch=epoch,
         best_val_loss=best_val_loss,
         best=best,
+        save_step=config.save_step,
     )
 
     return model, best_val_loss
