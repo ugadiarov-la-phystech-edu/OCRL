@@ -43,9 +43,11 @@ def make_env(path, seed):
     return init
 
 
-def make_gym(env_id, image_size, seed):
+def make_gym(env_id, image_size, time_limit, seed):
     def init():
         env = gym.make(env_id, seed=seed)
+        if time_limit is not None:
+            env._max_episode_steps = time_limit
         env.action_space.seed(seed)
         env = ResizeWrapper(env, image_size, image_size)
         env = Monitor(env)
@@ -79,6 +81,7 @@ if __name__ == '__main__':
     parser.add_argument('--env_id', type=str)
     parser.add_argument('--image_size', type=int, default=64)
     parser.add_argument('--vec_env', type=str, choices=['dummy', 'subproc'])
+    parser.add_argument('--time_limit', type=int, required=False)
     args = parser.parse_args()
     if args.env_type == 'gym':
         assert hasattr(args, 'env_id'), f'env_id argument must be provided for gym environment type'
@@ -98,7 +101,7 @@ if __name__ == '__main__':
     if args.env_type == 'cw':
         env = vec_env_type([make_env(args.env_config, args.seed + i) for i in range(args.n_envs)])
     elif args.env_type == 'gym':
-        env = vec_env_type([make_gym(args.env_id, image_size, args.seed + i) for i in range(args.n_envs)])
+        env = vec_env_type([make_gym(args.env_id, image_size, args.time_limit, args.seed + i) for i in range(args.n_envs)])
     else:
         assert False, 'Cannot happen!'
 
