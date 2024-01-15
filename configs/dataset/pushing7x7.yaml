@@ -1,0 +1,11 @@
+defaults:
+  - _synthetic_env_base
+  - _self_
+name: Pushing7x7
+tags: "pushing5x5"
+datadir: "datasets/Pushing7x7-Seed0-TL10-Tr300000-Val30000.hdf5"
+dataset_checkpoint:
+    entity: ''
+    project: ''
+    run_id: ''
+    file: 'Pushing7x7-Seed0-TL10-Tr300000-Val30000.hdf5'
