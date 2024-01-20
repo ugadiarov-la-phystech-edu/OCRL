@@ -13,3 +13,4 @@ load:
 
 max_epochs: 1000
 save_step: True
+shuffle_on_validation: False

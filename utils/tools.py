@@ -155,7 +155,7 @@ def preprocessing_obs(obs, device, type="image"):
 
 
 # To get data from files
-def get_dataloaders(config, batch_size, num_workers, replace=False):
+def get_dataloaders(config, batch_size, num_workers, replace=False, shuffle_on_validation=False):
     if config.datadir:
         parent_dir = Path(__file__).resolve().parents[1]
         datafile = parent_dir / config.datadir
@@ -177,7 +177,7 @@ def get_dataloaders(config, batch_size, num_workers, replace=False):
     train_dl = DataLoader(
         DataSet(f["TrainingSet"]), batch_size, num_workers=num_workers, shuffle=True
     )
-    val_dl = DataLoader(DataSet(f["ValidationSet"]), batch_size)
+    val_dl = DataLoader(DataSet(f["ValidationSet"]), batch_size, shuffle=shuffle_on_validation)
     return train_dl, val_dl
 
 

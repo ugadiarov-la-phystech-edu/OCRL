@@ -28,7 +28,8 @@ def main(config):
     train_dl, val_dl = get_dataloaders(
         config.dataset,
         config.batch_size,
-        config.num_workers
+        config.num_workers,
+        config.shuffle_on_validation,
     )
 
     # Model
