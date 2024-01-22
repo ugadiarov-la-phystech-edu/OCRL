@@ -223,7 +223,7 @@ def visualize(images):
 
 
 # Load model and params
-def load(model, agent_training=False, resume_checkpoint=None, resume_run_path=None):
+def load(model, agent_training=False, resume_checkpoint=None, resume_run_path=None, is_pretrained=False):
     checkpoint = None
     if resume_checkpoint is not None:
         checkpoint = torch.load(
@@ -252,7 +252,7 @@ def load(model, agent_training=False, resume_checkpoint=None, resume_run_path=No
             best_val_loss = checkpoint["best_val_loss"]
         model.load(checkpoint)
 
-    else:
+    if checkpoint is None or is_pretrained:
         step = 0
         if agent_training:
             episode = 0

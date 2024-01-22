@@ -10,6 +10,7 @@ num_workers: 1
 load:
     resume_run_path: null
     resume_checkpoint: null
+    is_pretrained: False
 
 max_epochs: 1000
 save_step: True

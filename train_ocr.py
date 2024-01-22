@@ -42,7 +42,8 @@ def main(config):
     # load
     step, epoch, best_val_loss = load(model,
             resume_checkpoint=config.load.resume_checkpoint,
-            resume_run_path=config.load.resume_run_path)
+            resume_run_path=config.load.resume_run_path,
+            is_pretrained=config.load.is_pretrained,)
 
     # Train
     while epoch < config.max_epochs:
