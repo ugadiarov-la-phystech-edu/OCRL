@@ -1,4 +1,6 @@
 import argparse
+import concurrent
+import multiprocessing
 
 import cv2
 import h5py
@@ -56,7 +58,20 @@ def make_env():
     return env
 
 
-def collect(observation, n_observations_total, train_dataset, train_size, val_dataset, val_size, tqdm_bar):
+def collect_episode_data(seed):
+    np.random.seed(seed)
+    env = make_env()
+    low, high = env.action_spec
+    observations = [wrap(env.reset())]
+    terminated = False
+    while not terminated:
+        obs, rew, terminated, info = env.step(np.random.uniform(low, high))
+        observations.append(wrap(obs))
+
+    return observations
+
+
+def store(observation, n_observations_total, train_dataset, train_size, val_dataset, val_size, tqdm_bar):
     if n_observations_total <= val_size:
         val_dataset[n_observations_total - 1, ...] = observation
     elif n_observations_total <= val_size + train_size:
@@ -76,10 +91,11 @@ if __name__ == '__main__':
     parser.add_argument('--val_size', type=int, default=10000)
     parser.add_argument('--seed', type=int, default=0)
     parser.add_argument('--image_size', type=int, default=96)
+    parser.add_argument('--n_envs', type=int, default=1)
     args = parser.parse_args()
     image_size = args.image_size
-    np.random.seed(args.seed)
 
+    seed = args.seed
     env = make_env()
     low, high = env.action_spec
 
@@ -94,22 +110,25 @@ if __name__ == '__main__':
         tqdm_bar = tqdm.tqdm(total=args.train_size + args.val_size, smoothing=0)
         collected = False
 
-        while not collected:
-            done = False
-            observation = wrap(env.reset())
-            n_observations_total += 1
-            collected = collect(observation, n_observations_total, train_dataset, args.train_size, val_dataset, args.val_size, tqdm_bar)
+        mp_context = multiprocessing.get_context('forkserver')
+        with concurrent.futures.ProcessPoolExecutor(max_workers=args.n_envs, mp_context=mp_context) as executor:
+            while not collected:
+                futures = []
+                for env_seed in range(seed, seed + args.n_envs):
+                    future = executor.submit(collect_episode_data, env_seed)
+                    futures.append(future)
 
-            while not done:
-                action = np.random.uniform(low, high)
-                observation, _, done, _ = env.step(action)
-                observation = wrap(observation)
-                n_observations_total += 1
-                collected = collect(observation, n_observations_total, train_dataset, args.train_size, val_dataset, args.val_size, tqdm_bar)
-                if collected:
-                    break
+                seed += args.n_envs
 
-            if collected:
-                break
+                for future in concurrent.futures.as_completed(futures):
+                    if collected:
+                        break
+
+                    episode_observations = future.result()
+                    for observation in episode_observations:
+                        collected = store(observation, n_observations_total, train_dataset, args.train_size, val_dataset, args.val_size, tqdm_bar)
+                        n_observations_total += 1
+                        if collected:
+                            break
 
         tqdm_bar.close()
