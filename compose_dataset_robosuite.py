@@ -1,4 +1,5 @@
 import argparse
+import collections
 import concurrent.futures
 import multiprocessing
 
@@ -91,7 +92,8 @@ if __name__ == '__main__':
     parser.add_argument('--val_size', type=int, default=10000)
     parser.add_argument('--seed', type=int, default=0)
     parser.add_argument('--image_size', type=int, default=96)
-    parser.add_argument('--n_envs', type=int, default=1)
+    parser.add_argument('--n_workers', type=int, default=1)
+    parser.add_argument('--n_queue', type=int, default=1)
     args = parser.parse_args()
     image_size = args.image_size
 
@@ -111,24 +113,31 @@ if __name__ == '__main__':
         collected = False
 
         mp_context = multiprocessing.get_context('forkserver')
-        with concurrent.futures.ProcessPoolExecutor(max_workers=args.n_envs, mp_context=mp_context) as executor:
-            while not collected:
-                futures = []
-                for env_seed in range(seed, seed + args.n_envs):
-                    future = executor.submit(collect_episode_data, env_seed)
-                    futures.append(future)
+        futures = collections.deque()
+        done_episodes = collections.deque()
+        with concurrent.futures.ProcessPoolExecutor(max_workers=args.n_workers, mp_context=mp_context) as executor:
+            for i in range(args.n_queue):
+                future = executor.submit(collect_episode_data, seed + i)
+                futures.append(future)
 
-                seed += args.n_envs
+            seed += args.n_queue
 
-                for future in concurrent.futures.as_completed(futures):
-                    if collected:
-                        break
+            while len(futures) > 0:
+                if futures[0].done():
+                    futures.append(executor.submit(collect_episode_data, seed))
+                    seed += 1
 
-                    episode_observations = future.result()
+                    episode_observations = futures.popleft().result()
+                    done_episodes.append(episode_observations)
+                elif len(done_episodes) > 0:
+                    episode_observations = done_episodes.popleft()
                     for observation in episode_observations:
                         collected = store(observation, n_observations_total, train_dataset, args.train_size, val_dataset, args.val_size, tqdm_bar)
                         n_observations_total += 1
                         if collected:
                             break
+                else:
+                    futures[0].result()
 
-        tqdm_bar.close()
+            tqdm_bar.close()
+            executor.shutdown(wait=False, cancel_futures=True)
