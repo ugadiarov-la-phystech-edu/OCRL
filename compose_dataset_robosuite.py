@@ -24,7 +24,7 @@ def wrap(obs, size=96):
     return frame
 
 
-def make_env():
+def make_env(task_name):
     controller_config = load_controller_config(default_controller="OSC_POSITION")
     placement_initializer = UniformRandomSampler(
         name="ObjectSampler",
@@ -37,7 +37,7 @@ def make_env():
         z_offset=0.01,
     )
     env = robosuite.make(
-        "Lift",
+        task_name,
         robots=["Panda"],  # load a Sawyer robot and a Panda robot
         gripper_types="default",  # use default grippers per robot arm
         controller_configs=controller_config,  # each arm is controlled using OSC
@@ -59,9 +59,9 @@ def make_env():
     return env
 
 
-def collect_episode_data(seed):
+def collect_episode_data(task_name, seed):
     np.random.seed(seed)
-    env = make_env()
+    env = make_env(task_name)
     low, high = env.action_spec
     observations = [wrap(env.reset())]
     terminated = False
@@ -88,6 +88,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
 
     parser.add_argument('--dataset', type=str, default='dataset.hdf5')
+    parser.add_argument('--task_name', type=str, default='Lift')
     parser.add_argument('--train_size', type=int, default=100000)
     parser.add_argument('--val_size', type=int, default=10000)
     parser.add_argument('--seed', type=int, default=0)
@@ -98,8 +99,6 @@ if __name__ == '__main__':
     image_size = args.image_size
 
     seed = args.seed
-    env = make_env()
-    low, high = env.action_spec
 
     with h5py.File(args.dataset, 'w') as hf:
         train_group = hf.create_group('TrainingSet')
@@ -117,14 +116,14 @@ if __name__ == '__main__':
         done_episodes = collections.deque()
         with concurrent.futures.ProcessPoolExecutor(max_workers=args.n_workers, mp_context=mp_context) as executor:
             for i in range(args.n_queue):
-                future = executor.submit(collect_episode_data, seed + i)
+                future = executor.submit(collect_episode_data, args.task_name, seed + i)
                 futures.append(future)
 
             seed += args.n_queue
 
             while not collected and len(futures) > 0:
                 if futures[0].done():
-                    futures.append(executor.submit(collect_episode_data, seed))
+                    futures.append(executor.submit(collect_episode_data, args.task_name, seed))
                     seed += 1
 
                     episode_observations = futures.popleft().result()
