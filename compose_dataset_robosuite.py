@@ -78,6 +78,7 @@ if __name__ == '__main__':
     parser.add_argument('--image_size', type=int, default=96)
     args = parser.parse_args()
     image_size = args.image_size
+    np.random.seed(args.seed)
 
     env = make_env()
     low, high = env.action_spec
