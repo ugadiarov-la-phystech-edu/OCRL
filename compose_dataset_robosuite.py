@@ -92,6 +92,7 @@ if __name__ == '__main__':
 
         n_observations_total = 0
         tqdm_bar = tqdm.tqdm(total=args.train_size + args.val_size, smoothing=0)
+        collected = False
 
         while not collected:
             done = False
