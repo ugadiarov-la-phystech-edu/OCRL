@@ -1,5 +1,5 @@
 import argparse
-import concurrent
+import concurrent.futures
 import multiprocessing
 
 import cv2
