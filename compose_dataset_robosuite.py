@@ -122,7 +122,7 @@ if __name__ == '__main__':
 
             seed += args.n_queue
 
-            while len(futures) > 0:
+            while not collected and len(futures) > 0:
                 if futures[0].done():
                     futures.append(executor.submit(collect_episode_data, seed))
                     seed += 1
