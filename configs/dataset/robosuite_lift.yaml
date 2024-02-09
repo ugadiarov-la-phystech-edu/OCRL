@@ -3,6 +3,7 @@ defaults:
   - _self_
 name: robosuite_lift
 tags: "robosuite_lift"
+obs_size: 96
 datadir: "datasets/RobosuiteLift-Seed0-Tr300000-Val30000.hdf5"
 dataset_checkpoint:
     entity: ''
