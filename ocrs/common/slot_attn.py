@@ -4,6 +4,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from ocrs.common.networks import linear, gru_cell
+from ocrs.gnn.gnn import GRUGNNCell
 
 
 class SlotAttention(nn.Module):
@@ -16,6 +17,7 @@ class SlotAttention(nn.Module):
         mlp_hidden_size,
         heads,
         epsilon=1e-8,
+        use_graph_gru=False,
     ):
         super().__init__()
 
@@ -26,6 +28,7 @@ class SlotAttention(nn.Module):
         self.mlp_hidden_size = mlp_hidden_size
         self.epsilon = epsilon
         self.num_heads = heads
+        self.use_graph_gru = use_graph_gru
 
         self.norm_inputs = nn.LayerNorm(input_size)
         self.norm_slots = nn.LayerNorm(slot_size)
@@ -37,7 +40,11 @@ class SlotAttention(nn.Module):
         self.project_v = linear(input_size, slot_size, bias=False)
 
         # Slot update functions.
-        self.gru = gru_cell(slot_size, slot_size)
+        if self.use_graph_gru:
+            self.gru = GRUGNNCell(slot_size, gnn_hidden_dim=512, num_objects=self.num_slots)
+        else:
+            self.gru = gru_cell(slot_size, slot_size)
+
         self.mlp = nn.Sequential(
             linear(slot_size, mlp_hidden_size, weight_init="kaiming"),
             nn.ReLU(),
@@ -93,9 +100,11 @@ class SlotAttention(nn.Module):
             )  # Shape: [batch_size, num_slots, slot_size].
 
             # Slot update.
-            slots = self.gru(
-                updates.view(-1, self.slot_size), slots_prev.view(-1, self.slot_size)
-            )
+            if not self.use_graph_gru:
+                updates = updates.view(-1, self.slot_size)
+                slots_prev = slots_prev.view(-1, self.slot_size)
+
+            slots = self.gru(updates, slots_prev)
             slots = slots.view(-1, self.num_slots, self.slot_size)
             slots = slots + self.mlp(self.norm_mlp(slots))
 
@@ -112,6 +121,7 @@ class SlotAttentionEncoder(nn.Module):
         mlp_hidden_size,
         pos_channels,
         num_heads,
+        use_graph_gru=False
     ):
         super().__init__()
 
@@ -121,6 +131,7 @@ class SlotAttentionEncoder(nn.Module):
         self.slot_size = slot_size
         self.mlp_hidden_size = mlp_hidden_size
         self.pos_channels = pos_channels
+        self.use_graph_gru = use_graph_gru
 
         self.layer_norm = nn.LayerNorm(input_channels)
         self.mlp = nn.Sequential(
@@ -142,6 +153,7 @@ class SlotAttentionEncoder(nn.Module):
             slot_size,
             mlp_hidden_size,
             num_heads,
+            use_graph_gru=self.use_graph_gru
         )
 
     def forward(self, x):

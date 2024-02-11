@@ -51,6 +51,7 @@ class SLATE_Module(nn.Module):
         self._tau = 1.0
 
         self._hard = ocr_config.hard
+        self._use_graph_gru = ocr_config.use_graph_gru
 
         # build Discrete VAE
         self._dvae = dVAE(self._vocab_size, obs_channels)
@@ -66,6 +67,7 @@ class SLATE_Module(nn.Module):
             mlp_hidden_size,
             pos_channels,
             num_slot_heads,
+            use_graph_gru=self._use_graph_gru
         )
 
         # broadcast decoder

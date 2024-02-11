@@ -33,3 +33,5 @@ learning:
   lr_warmup_steps: 30000
   dropout: 0.1
   clip: 0.05
+
+use_graph_gru: False
