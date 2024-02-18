@@ -1,0 +1,11 @@
+defaults:
+  - _self_
+name: robosuite_stack
+tags: "robosuite_stack"
+obs_size: 128
+obs_channels: 3
+webdataset: true
+train_shards: "datasets/robosuite-stack/train/shard-{000000..000083}.tar"
+train_size: 299878
+val_shards: "datasets/robosuite-stack/val/shard-{000000..000008}.tar"
+val_size: 30000

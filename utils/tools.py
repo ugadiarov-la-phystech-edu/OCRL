@@ -19,6 +19,7 @@ from scipy.optimize import linear_sum_assignment
 from sklearn.metrics import adjusted_rand_score
 
 from utils.datasets import DataSet
+from utils.webdataset.utils import webdataset_dataloaders
 
 
 Tensor = TypeVar("torch.tensor")
@@ -156,6 +157,9 @@ def preprocessing_obs(obs, device, type="image"):
 
 # To get data from files
 def get_dataloaders(config, batch_size, num_workers, replace=False, shuffle_on_validation=False):
+    if config.webdataset:
+        return webdataset_dataloaders(config, batch_size, num_workers, shuffle_val=shuffle_on_validation)
+
     if config.datadir:
         parent_dir = Path(__file__).resolve().parents[1]
         datafile = parent_dir / config.datadir

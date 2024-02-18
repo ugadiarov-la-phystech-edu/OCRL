@@ -1,12 +1,11 @@
 defaults:
-  - _synthetic_env_base
   - _self_
 name: robosuite_lift
 tags: "robosuite_lift"
-obs_size: 96
-datadir: "datasets/RobosuiteLift-Seed0-Tr300000-Val30000.hdf5"
-dataset_checkpoint:
-    entity: ''
-    project: ''
-    run_id: ''
-    file: 'datasets/RobosuiteLift-Seed0-Tr300000-Val30000.hdf5'
+obs_size: 128
+obs_channels: 3
+webdataset: true
+train_shards: "datasets/robosuite-lift/train/shard-{000000..000083}.tar"
+train_size: 299878
+val_shards: "datasets/robosuite-lift/val/shard-{000000..000008}.tar"
+val_size: 30000
