@@ -5,6 +5,7 @@ tau_steps: 30000
 hard: False
 use_cnn_feat: False
 use_bcdec: False
+dvae_pretraining_mode: False
 
 dvae:
   vocab_size: 4096

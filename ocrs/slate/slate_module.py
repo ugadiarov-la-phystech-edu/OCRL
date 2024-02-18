@@ -27,6 +27,7 @@ class SLATE_Module(nn.Module):
         self._obs_channels = obs_channels = env_config.obs_channels
         self._use_cnn_feat = use_cnn_feat = ocr_config.use_cnn_feat
         self._use_bcdec = ocr_config.use_bcdec
+        self._dvae_pretraining_mode = ocr_config.dvae_pretraining_mode
 
         ## Configs
         # dvae config
@@ -202,40 +203,47 @@ class SLATE_Module(nn.Module):
         # dvae recon
         recon = self._dvae.decode(z)
         dvae_mse = ((obs - recon) ** 2).sum() / obs.shape[0]
-        # get slots
-        slots, attns, cross_entropy = self._get_slots(obs, z_hard=z_hard, with_attns=True, with_ce=True)
-        attns = attns.transpose(-1, -2).reshape(
-            obs.shape[0], slots.shape[1], 1, obs.shape[2], obs.shape[3]
-        )
-        if masks is not None:
-            fg_mask = (1 - masks[:,-1].unsqueeze(1))
-            attns = attns * fg_mask
-            attns = torch.cat([attns, fg_mask], dim=1)
-            ari = np.mean(calculate_ari(masks, attns))
-        else:
-            ari = 0 # Mask is not given through dataset
-
-        if self._use_bcdec:
-            recon = self._dec(slots)
-            mse = ((obs - recon) ** 2).sum() / obs.shape[0]
+        if self._dvae_pretraining_mode:
             metrics = {
-                "loss": mse,
-                "mse": mse.detach(),
-                "ari": ari,
-            }
-        else:
-            metrics = {
-                "loss": dvae_mse + cross_entropy,
+                "loss": dvae_mse,
                 "dvae_mse": dvae_mse.detach(),
-                #"ari": ari,
-                "cross_entropy": cross_entropy.detach(),
                 "tau": torch.Tensor([self._tau]),
             }
-            # generate image tokens auto-regressively
-            if with_mse:
-                recon_tf = self._gen_imgs(slots)
-                mse = ((obs - recon_tf) ** 2).sum() / obs.shape[0]
-                metrics.update({"mse": mse.detach()})
+        else:
+            # get slots
+            slots, attns, cross_entropy = self._get_slots(obs, z_hard=z_hard, with_attns=True, with_ce=True)
+            attns = attns.transpose(-1, -2).reshape(
+                obs.shape[0], slots.shape[1], 1, obs.shape[2], obs.shape[3]
+            )
+            if masks is not None:
+                fg_mask = (1 - masks[:,-1].unsqueeze(1))
+                attns = attns * fg_mask
+                attns = torch.cat([attns, fg_mask], dim=1)
+                ari = np.mean(calculate_ari(masks, attns))
+            else:
+                ari = 0 # Mask is not given through dataset
+
+            if self._use_bcdec:
+                recon = self._dec(slots)
+                mse = ((obs - recon) ** 2).sum() / obs.shape[0]
+                metrics = {
+                    "loss": mse,
+                    "mse": mse.detach(),
+                    "ari": ari,
+                }
+            else:
+                metrics = {
+                    "loss": dvae_mse + cross_entropy,
+                    "dvae_mse": dvae_mse.detach(),
+                    #"ari": ari,
+                    "cross_entropy": cross_entropy.detach(),
+                    "tau": torch.Tensor([self._tau]),
+                }
+                # generate image tokens auto-regressively
+                if with_mse:
+                    recon_tf = self._gen_imgs(slots)
+                    mse = ((obs - recon_tf) ** 2).sum() / obs.shape[0]
+                    metrics.update({"mse": mse.detach()})
 
         #return (metrics, zs) if with_rep else metrics
         return (metrics, z) if with_rep else metrics
