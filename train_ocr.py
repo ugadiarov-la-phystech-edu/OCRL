@@ -43,7 +43,8 @@ def main(config):
     step, epoch, best_val_loss = load(model,
             resume_checkpoint=config.load.resume_checkpoint,
             resume_run_path=config.load.resume_run_path,
-            is_pretrained=config.load.is_pretrained,)
+            is_pretrained=config.load.is_pretrained,
+            only_dvae=config.load.only_dvae)
 
     # Train
     while epoch < config.max_epochs:

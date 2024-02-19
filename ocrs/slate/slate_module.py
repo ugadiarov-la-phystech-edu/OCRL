@@ -55,6 +55,9 @@ class SLATE_Module(nn.Module):
 
         # build Discrete VAE
         self._dvae = dVAE(self._vocab_size, obs_channels)
+        for param in self._dvae.parameters():
+            param.requires_grad = ocr_config.learning.lr_dvae != 0
+
         self._enc_size = enc_size = obs_size // 4
         # build encoder
         self._enc = SlotAttnCNNEncoder(obs_size, obs_channels, cnn_hsize)

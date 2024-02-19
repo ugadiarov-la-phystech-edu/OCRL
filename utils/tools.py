@@ -227,7 +227,7 @@ def visualize(images):
 
 
 # Load model and params
-def load(model, agent_training=False, resume_checkpoint=None, resume_run_path=None, is_pretrained=False):
+def load(model, agent_training=False, resume_checkpoint=None, resume_run_path=None, is_pretrained=False, only_dvae=False):
     checkpoint = None
     if resume_checkpoint is not None:
         checkpoint = torch.load(
@@ -254,7 +254,16 @@ def load(model, agent_training=False, resume_checkpoint=None, resume_run_path=No
         else:
             epoch = checkpoint["epoch"]
             best_val_loss = checkpoint["best_val_loss"]
-        model.load(checkpoint)
+
+        if only_dvae:
+            state_dict = model._module.state_dict()
+            for key, value in checkpoint['ocr_module_state_dict'].items():
+                if key.startswith('_dvae'):
+                    state_dict[key] = value
+
+            model._module.load_state_dict(state_dict)
+        else:
+            model.load(checkpoint)
 
     if checkpoint is None or is_pretrained:
         step = 0

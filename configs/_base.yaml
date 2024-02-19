@@ -11,6 +11,7 @@ load:
     resume_run_path: null
     resume_checkpoint: null
     is_pretrained: False
+    only_dvae: False
 
 max_epochs: 1000
 save_step: True
