@@ -17,10 +17,15 @@ class OCRExtractor(BaseFeaturesExtractor):
     """
 
     def __init__(self, observation_space: gym.spaces.Box, config=None):
-        ocr = getattr(ocrs, config.ocr.name)(config.ocr, config.env)
-        pooling = getattr(poolings, config.pooling.name)(ocr, config.pooling)
-        super(OCRExtractor, self).__init__(observation_space, pooling.rep_dim)
-        del ocr, pooling
+        if config.ocr.name == "DINOSAUR":
+            rep_dim = config.ocr.slotattr.slot_size
+        else:
+            ocr = getattr(ocrs, config.ocr.name)(config.ocr, config.env)
+            pooling = getattr(poolings, config.pooling.name)(ocr, config.pooling)
+            rep_dim = pooling.rep_dim
+            del ocr, pooling
+
+        super(OCRExtractor, self).__init__(observation_space, rep_dim)
         self._num_stacked_obss = config.env.num_stacked_obss
         self._obs_size = config.env.obs_size
         self._obs_channels = config.env.obs_channels
