@@ -41,7 +41,7 @@ class OCRExtractor(BaseFeaturesExtractor):
             dinosaur = Dinosaur(dino_model_name=model_name, n_slots=config.ocr.slotattr.num_slots,
                                  slot_dim=config.ocr.slotattr.slot_size,
                                  intput_feature_dim=input_feature_dim, num_patches=num_patches, features=features)
-            state_dict = torch.load(config.pooling.ocr_checkpoint)['state_dict']
+            state_dict = torch.load(config.pooling.ocr_checkpoint.local_file)['state_dict']
             state_dict = {key[len('models.'):]: value for key, value in state_dict.items()}
 
             dinosaur.load_state_dict(state_dict)
