@@ -1,0 +1,4 @@
+name: 'DINOSAUR'
+slotattr:
+  num_slots: 5
+  slot_size: 64

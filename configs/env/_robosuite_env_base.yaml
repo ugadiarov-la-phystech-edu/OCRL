@@ -1,0 +1,5 @@
+obs_channels: 3
+tags: ""
+mode: "default"
+rew_type: "default"
+num_stacked_obss: 1

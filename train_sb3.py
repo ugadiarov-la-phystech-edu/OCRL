@@ -17,6 +17,7 @@ from wandb.integration.sb3 import WandbCallback
 
 import envs
 import sb3s
+from envs.robosuite import RobosuiteEnv
 from utils.tools import *
 
 log = logging.getLogger(__name__)
@@ -49,6 +50,16 @@ class FailOnTimelimitWrapper(gym.Wrapper):
         return observation, reward, done, info
 
 
+def make_robosuite_lift(config_env, seed=None):
+    if seed is None:
+        seed = config_env.seed
+
+    env = RobosuiteEnv(config_env.name, config_env.horizon, seed, config_env.initialization_noise_magnitude,
+                       config_env.use_random_object_position)
+    env = WarpFrame(env, config_env.obs_size)
+    return env
+
+
 @hydra.main(config_path="configs/", config_name="train_sb3")
 def main(config):
     log_name = get_log_prefix(config)
@@ -76,6 +87,8 @@ def main(config):
                 env = FailOnTimelimitWrapper(env)
                 env.seed(seed)
                 env.action_space.seed(seed)
+            elif config.env.name == 'Lift':
+                env = make_robosuite_lift(config.env)
             else:
                 env = getattr(envs, config.env.env)(config.env, seed)
             env = Monitor(env)  # record stats such as returns
@@ -97,12 +110,14 @@ def main(config):
                     env = FailOnTimelimitWrapper(env)
                     env.seed(seed + rank)
                     env.action_space.seed(seed + rank)
+                elif config.env.name == 'Lift':
+                    env = make_robosuite_lift(config.env, seed=seed + rank)
                 else:
                     env = getattr(envs, config.env.env)(config.env, seed + rank)
                 env = Monitor(env)  # record stats such as returns
                 return env
-            set_random_seed(seed)
             return _init
+        set_random_seed(config.seed)
         env = SubprocVecEnv(
             [make_env(i, seed=config.seed) for i in range(config.num_envs)],
             start_method="fork",
@@ -121,6 +136,8 @@ def main(config):
         eval_env = FailOnTimelimitWrapper(eval_env)
         eval_env.seed(config.seed + config.num_envs)
         eval_env.action_space.seed(config.seed + config.num_envs)
+    elif config.env.name == 'Lift':
+        eval_env = make_robosuite_lift(config.env, seed=config.seed + config.num_envs)
     else:
         eval_env = getattr(envs, config.env.env)(
             config.env, seed=config.seed + config.num_envs
