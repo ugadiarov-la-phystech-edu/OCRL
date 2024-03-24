@@ -18,7 +18,7 @@ class OCRExtractor(BaseFeaturesExtractor):
 
     def __init__(self, observation_space: gym.spaces.Box, config=None):
         if config.ocr.name == "DINOSAUR":
-            rep_dim = config.ocr.slotattr.slot_size
+            rep_dim = config.pooling.d_model
         else:
             ocr = getattr(ocrs, config.ocr.name)(config.ocr, config.env)
             pooling = getattr(poolings, config.pooling.name)(ocr, config.pooling)
