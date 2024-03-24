@@ -56,7 +56,7 @@ def make_robosuite_lift(config_env, seed=None):
 
     env = RobosuiteEnv(config_env.name, config_env.horizon, seed, config_env.initialization_noise_magnitude,
                        config_env.use_random_object_position)
-    env = WarpFrame(env, config_env.obs_size)
+    env = WarpFrame(env, config_env.obs_size, config_env.obs_size)
     return env
 
 
