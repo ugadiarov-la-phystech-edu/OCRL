@@ -120,7 +120,7 @@ def main(config):
         set_random_seed(config.seed)
         env = SubprocVecEnv(
             [make_env(i, seed=config.seed) for i in range(config.num_envs)],
-            start_method="fork",
+            start_method="forkserver",
         )
     # env = VecVideoRecorder(
     #     env,
