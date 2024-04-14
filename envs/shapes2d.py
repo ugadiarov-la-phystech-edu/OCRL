@@ -9,6 +9,8 @@ import sys
 import copy
 
 import matplotlib as mpl
+from mazelib import Maze
+from mazelib.generate.Wilsons import Wilsons
 
 mpl.use('Agg')
 from matplotlib import pyplot as plt
@@ -79,8 +81,12 @@ class Shapes2d(gym.Env):
     GOAL = 'goal'
     STATIC_BOX = 'static_box'
     BOX = 'box'
+    WALL = 'wall'
     MOVED_BOXES_KEY = 'moved_boxes'
     MOVING_BOXES_KEY = 'moving_boxes'
+
+    WALL_ID = -2
+    FREE_CELL_ID = -1
 
     STEP_REWARD = -0.01
     OUT_OF_FIELD_REWARD = -0.1
@@ -155,10 +161,15 @@ class Shapes2d(gym.Env):
             raise ValueError(f'Invalid observation_type: {self.observation_type}.')
 
         self.state = None
+        self.base_image = None
         self.steps_taken = 0
         self.box_pos = np.zeros(shape=(self.n_boxes, 2), dtype=np.int32)
         self.speed = [{direction: 1 for direction in self.direction2action} for _ in range(self.n_boxes)]
         self.hit_goal_reward = [Shapes2d.HIT_GOAL_REWARD] * self.n_boxes
+
+        self.maze = Maze(seed=seed)
+        maze_size = (width + 1) // 2
+        self.maze.generator = Wilsons(maze_size, maze_size)
 
         self.seed(seed)
         self.reset()
@@ -190,10 +201,15 @@ class Shapes2d(gym.Env):
         raise NotImplementedError()
 
     def reset(self):
-        state = np.full(shape=[self.w, self.w], fill_value=-1, dtype=np.int32)
+        self.maze.generate()
+        state = np.asarray(self.maze.grid[1:-1, 1:-1], dtype=np.int32)
+        assert state.shape == (self.w, self.w), f'Actual shape: {state.shape}. Expected shape: {(self.w, self.w)}'
+        # Empty cells: -1. Walls: -2
+        state = -state - 1
 
         # sample random locations for objects
         if self.embodied_agent:
+            raise NotImplementedError('Embodied mode is not implemented yet')
             is_agent_in_main_area = self.np_random.random() > 4 * (self.w - 1) / self.w / self.w
             locs = self.np_random.choice((self.w - 2) ** 2, self.n_boxes - 1 + is_agent_in_main_area, replace=False)
             xs, ys = np.unravel_index(locs, [self.w - 2, self.w - 2])
@@ -220,8 +236,10 @@ class Shapes2d(gym.Env):
                 xs = np.append(x, xs)
                 ys = np.append(y, ys)
         else:
-            locs = self.np_random.choice(self.w ** 2, self.n_boxes, replace=False)
-            xs, ys = np.unravel_index(locs, [self.w, self.w])
+            free_cells = np.argwhere(state == Shapes2d.FREE_CELL_ID)
+            selected_ids = self.np_random.choice(a=free_cells.shape[0], size=self.n_boxes, replace=False)
+            selected_cells = free_cells[selected_ids, :]
+            xs, ys = selected_cells.T
 
         # populate state with locations
         for i, (x, y) in enumerate(zip(xs, ys)):
@@ -229,6 +247,7 @@ class Shapes2d(gym.Env):
             self.box_pos[i, :] = x, y
 
         self.state = state
+        self.base_image = self._get_base()
         self.steps_taken = 0
         self.n_boxes_in_game = self.n_boxes - len(self.goal_ids) - int(self.embodied_agent) - int(self.do_reward_push_only)
         if not self.embodied_agent:
@@ -247,7 +266,7 @@ class Shapes2d(gym.Env):
 
     def _destroy_box(self, box_id):
         box_pos = self.box_pos[box_id]
-        self.state[box_pos[0], box_pos[1]] = -1
+        self.state[box_pos[0], box_pos[1]] = Shapes2d.FREE_CELL_ID
         self.box_pos[box_id] = -1, -1
         if self._get_type(box_id) == Shapes2d.BOX or (
                 not self.embodied_agent and self._get_type(box_id) == Shapes2d.STATIC_BOX):
@@ -255,12 +274,15 @@ class Shapes2d(gym.Env):
 
     def _move(self, box_id, new_pos):
         old_pos = self.box_pos[box_id]
-        self.state[old_pos[0], old_pos[1]] = -1
+        self.state[old_pos[0], old_pos[1]] = Shapes2d.FREE_CELL_ID
         self.state[new_pos[0], new_pos[1]] = box_id
         self.box_pos[box_id] = new_pos
 
     def _is_free_cell(self, pos):
-        return self.state[pos[0], pos[1]] == -1
+        return self.state[pos[0], pos[1]] == Shapes2d.FREE_CELL_ID
+
+    def _is_wall(self, pos):
+        return self.state[pos[0], pos[1]] == Shapes2d.WALL_ID
 
     def _get_occupied_box_id(self, pos):
         return self.state[pos[0], pos[1]]
@@ -294,6 +316,8 @@ class Shapes2d(gym.Env):
 
                 if not simulate:
                     self._destroy_box(box_id)
+        elif self._is_wall(box_new_pos):
+            reward += Shapes2d.OUT_OF_FIELD_REWARD
         elif not self._is_free_cell(box_new_pos):
             # push into another box
             another_box_id = self._get_occupied_box_id(box_new_pos)
@@ -416,7 +440,7 @@ class Shapes2d(gym.Env):
 
     def print(self, message=''):
         state = self.state
-        chars = {-1: '.'}
+        chars = {-1: '.', -2: '■'}
         for box_id in range(self.n_boxes):
             if box_id in self.goal_ids:
                 chars[box_id] = 'x'
@@ -440,9 +464,20 @@ class Shapes2d(gym.Env):
         return ["down", "left", "up", "right"] * (
                 self.n_boxes - len(self.static_box_ids) - len(self.goal_ids) * self.static_goals)
 
-    def render_squares(self):
+    def _get_base(self):
         im = np.zeros((self.w * self.render_scale, self.w * self.render_scale, self._get_image_channels()),
                       dtype=np.float32)
+        for pos in np.argwhere(self.state == Shapes2d.WALL_ID):
+            rr, cc = square(pos[0] * self.render_scale, pos[1] * self.render_scale, self.render_scale, im.shape)
+            if self.channel_wise:
+                im[rr, cc, self.n_boxes] = 1
+            else:
+                im[rr, cc, :] = 1
+
+        return im
+
+    def render_squares(self):
+        im = self.base_image.copy()
         for idx, pos in enumerate(self.box_pos):
             if pos[0] == -1:
                 assert pos[1] == -1
@@ -462,8 +497,7 @@ class Shapes2d(gym.Env):
         return im.astype(dtype=np.uint8)
 
     def render_shapes(self):
-        im = np.zeros((self.w * self.render_scale, self.w * self.render_scale, self._get_image_channels()),
-                      dtype=np.float32)
+        im = self.base_image.copy()
         for idx, pos in enumerate(self.box_pos):
             if pos[0] == -1:
                 assert pos[1] == -1
@@ -579,11 +613,11 @@ if __name__ == "__main__":
         print(f'Episode length: {np.mean(all_l)} +/- {np.std(all_l)}, std_mean={np.std(all_l) / np.sqrt(n_episodes)}')
     else:
         def show(obs):
-            plt.imshow(np.transpose(obs, [1, 2, 0]))
+            plt.imshow(np.transpose(obs, [0, 1, 2]))
             plt.show()
 
-        s, info = env.reset()
-        env.print(f'Episode start: {info}')
+        s = env.reset()
+        # env.print(f'Episode start: {info}')
         show(s)
         episode_r = 0
 
@@ -614,7 +648,7 @@ if __name__ == "__main__":
             show(s)
             if d or key == "r":
                 print("Done with {} points. Resetting!".format(episode_r))
-                s, info = env.reset()
+                s = env.reset()
                 episode_r = 0
-                env.print(f'{info}')
+                # env.print(f'{info}')
                 show(s)
