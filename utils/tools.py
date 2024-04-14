@@ -181,7 +181,7 @@ def get_dataloaders(config, batch_size, num_workers, replace=False, shuffle_on_v
     train_dl = DataLoader(
         DataSet(f["TrainingSet"]), batch_size, num_workers=num_workers, shuffle=True
     )
-    val_dl = DataLoader(DataSet(f["ValidationSet"]), batch_size, shuffle=shuffle_on_validation)
+    val_dl = DataLoader(DataSet(f["ValidationSet"]), batch_size, shuffle=True)
     return train_dl, val_dl
 
 
