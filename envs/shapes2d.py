@@ -472,7 +472,7 @@ class Shapes2d(gym.Env):
             if self.channel_wise:
                 im[rr, cc, self.n_boxes] = 1
             else:
-                im[rr, cc, :] = 1
+                im[rr, cc, :] = [0.9607843137254902, 0.9607843137254902, 0.7843137254901961]
 
         return im
 
