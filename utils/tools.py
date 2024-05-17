@@ -93,6 +93,7 @@ def init_wandb(config, log_name, tags="", sync_tensorboard=None, monitor_gym=Non
         project=config.wandb.project,
         config=wandb.config,
         name=log_name,
+        group=config.wandb.group,
         dir=str(Path.cwd().parent.parent),
         save_code=True,
         sync_tensorboard=sync_tensorboard,
