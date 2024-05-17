@@ -18,7 +18,7 @@ slotattr:
   num_iterations: 5
   num_slots: 6
   num_slot_heads: 1
-  slot_size: 128
+  slot_size: 64
   mlp_hidden_size: 256
   pos_channels: 5
 
