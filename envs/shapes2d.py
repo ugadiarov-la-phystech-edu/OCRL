@@ -91,7 +91,8 @@ class Shapes2d(gym.Env):
 
     def __init__(self, n_boxes=5, n_static_boxes=0, n_goals=1, static_goals=True, width=5, embodied_agent=False,
                  return_state=False, observation_type='shapes', border_walls=True, channels_first=True,
-                 channel_wise=False, seed=None, render_scale=10, ternary_interactions=False, do_reward_push_only=False):
+                 channel_wise=False, seed=None, render_scale=10, ternary_interactions=False, do_reward_push_only=False,
+                 use_random_shapes=False):
         if n_static_boxes > 0:
             assert n_goals == 0 or static_goals, 'Cannot have movable goals with static objects.'
 
@@ -155,6 +156,8 @@ class Shapes2d(gym.Env):
             raise ValueError(f'Invalid observation_type: {self.observation_type}.')
 
         self.state = None
+        self.idx2shape_id = None
+        self.use_random_shapes = use_random_shapes
         self.steps_taken = 0
         self.box_pos = np.zeros(shape=(self.n_boxes, 2), dtype=np.int32)
         self.speed = [{direction: 1 for direction in self.direction2action} for _ in range(self.n_boxes)]
@@ -231,6 +234,11 @@ class Shapes2d(gym.Env):
         self.state = state
         self.steps_taken = 0
         self.n_boxes_in_game = self.n_boxes - len(self.goal_ids) - int(self.embodied_agent) - int(self.do_reward_push_only)
+        if self.use_random_shapes:
+            self.idx2shape_id = random.choices(range(8), k=self.n_boxes)
+        else:
+            self.idx2shape_id = [i % 8 for i in range(self.n_boxes)]
+
         if not self.embodied_agent:
             self.n_boxes_in_game -= len(self.static_box_ids) * int(self.static_goals)
 
@@ -469,7 +477,7 @@ class Shapes2d(gym.Env):
                 assert pos[1] == -1
                 continue
 
-            shape_id = idx % 8
+            shape_id = self.idx2shape_id[idx]
             if shape_id == 0:
                 rr, cc = circle(pos[0] * self.render_scale, pos[1] * self.render_scale, self.render_scale, im.shape)
             elif shape_id == 1:
@@ -591,6 +599,11 @@ if __name__ == "__main__":
             keys = list(input())
             if keys[0] == "q":
                 break
+            elif keys[0] == 'r':
+                s = env.reset()
+                episode_r = 0
+                show(s)
+                continue
 
             obj_id = int(keys[0])
             key = keys[1]
