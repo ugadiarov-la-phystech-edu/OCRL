@@ -180,9 +180,9 @@ def get_dataloaders(config, batch_size, num_workers, replace=False, shuffle_on_v
 
     f = h5py.File(datafile, "r")
     train_dl = DataLoader(
-        DataSet(f["TrainingSet"]), batch_size, num_workers=num_workers, shuffle=True
+        DataSet(f["TrainingSet"], obs_size=config.obs_size, allow_resize=config.allow_resize), batch_size, num_workers=num_workers, shuffle=True
     )
-    val_dl = DataLoader(DataSet(f["ValidationSet"]), batch_size, shuffle=True)
+    val_dl = DataLoader(DataSet(f["ValidationSet"], obs_size=config.obs_size, allow_resize=config.allow_resize), batch_size, shuffle=True)
     return train_dl, val_dl
 
 
