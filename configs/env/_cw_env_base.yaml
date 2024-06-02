@@ -9,4 +9,5 @@ tags: ""
 num_stacked_obss: 1
 obs_size: 64
 obs_channels: 3
+interpolation: "cubic"
 task: "target"

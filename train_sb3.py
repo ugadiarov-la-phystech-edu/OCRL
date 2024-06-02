@@ -24,17 +24,18 @@ log = logging.getLogger(__name__)
 
 
 class WarpFrame(gym.ObservationWrapper):
-    def __init__(self, env: gym.Env, width: int = 64, height: int = 64):
+    def __init__(self, env: gym.Env, width: int = 64, height: int = 64, interpolation='cubic'):
         gym.ObservationWrapper.__init__(self, env)
         self.width = width
         self.height = height
+        self.interpolation = {'cubic': cv2.INTER_CUBIC, 'linear': cv2.INTER_LINEAR}[interpolation]
         self.observation_space = spaces.Box(
             low=0, high=255, shape=(self.height, self.width, env.observation_space.shape[2]),
             dtype=env.observation_space.dtype
         )
 
     def observation(self, frame: np.ndarray) -> np.ndarray:
-        frame = cv2.resize(frame, (self.width, self.height), interpolation=cv2.INTER_CUBIC)
+        frame = cv2.resize(frame, (self.width, self.height), interpolation=self.interpolation)
         return frame
 
 
@@ -56,7 +57,7 @@ def make_robosuite_lift(config_env, seed=None):
 
     env = RobosuiteEnv(config_env.name, config_env.horizon, seed, config_env.initialization_noise_magnitude,
                        config_env.use_random_object_position)
-    env = WarpFrame(env, config_env.obs_size, config_env.obs_size)
+    env = WarpFrame(env, config_env.obs_size, config_env.obs_size, interpolation=config_env.interpolation)
     return env
 
 
@@ -83,7 +84,7 @@ def main(config):
                 config.env.render_mode = "state"
             if config.env.name.startswith('Navigation') or config.env.name.startswith('Pushing'):
                 env = gym.make(config.env.name)
-                env = WarpFrame(env, width=config.env.obs_size, height=config.env.obs_size)
+                env = WarpFrame(env, width=config.env.obs_size, height=config.env.obs_size, interpolation=config.env.interpolation)
                 env = FailOnTimelimitWrapper(env)
                 env.seed(seed)
                 env.action_space.seed(seed)
@@ -106,7 +107,7 @@ def main(config):
                     config.env.render_mode = "state"
                 if config.env.name.startswith('Navigation') or config.env.name.startswith('Pushing'):
                     env = gym.make(config.env.name)
-                    env = WarpFrame(env, width=config.env.obs_size, height=config.env.obs_size)
+                    env = WarpFrame(env, width=config.env.obs_size, height=config.env.obs_size, interpolation=config.env.interpolation)
                     env = FailOnTimelimitWrapper(env)
                     env.seed(seed + rank)
                     env.action_space.seed(seed + rank)
@@ -132,7 +133,7 @@ def main(config):
         config.env.render_mode = "state"
     if config.env.name.startswith('Navigation') or config.env.name.startswith('Pushing'):
         eval_env = gym.make(config.env.name)
-        eval_env = WarpFrame(eval_env, width=config.env.obs_size, height=config.env.obs_size)
+        eval_env = WarpFrame(eval_env, width=config.env.obs_size, height=config.env.obs_size, interpolation=config.env.interpolation)
         eval_env = FailOnTimelimitWrapper(eval_env)
         eval_env.seed(config.seed + config.num_envs)
         eval_env.action_space.seed(config.seed + config.num_envs)

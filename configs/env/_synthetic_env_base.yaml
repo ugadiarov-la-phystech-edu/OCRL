@@ -9,6 +9,7 @@ num_stacked_obss: 1
 tags: ""
 obs_size: 64
 obs_channels: 3
+interpolation: "cubic"
 moving_step_size: 0.05
 wo_agent: False
 skewed: False
