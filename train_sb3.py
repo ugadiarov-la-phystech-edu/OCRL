@@ -159,6 +159,7 @@ def main(config):
         model_kwargs['n_steps'] = model_kwargs['n_steps'] // config.num_envs
     if hasattr(config.sb3, 'orig') and config.sb3.orig:
         policy = 'CnnPolicy'
+        del model_kwargs['policy_kwargs']
     elif config.sb3_acnet.name == 'GNN':
         policy = sb3s.GNNActorCriticPolicy
         model_kwargs['policy_kwargs']['config'] = config
