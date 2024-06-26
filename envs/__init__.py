@@ -161,7 +161,7 @@ register(
 
 register(
     'Pushing7x7ContinuousSlow-v0',
-    entry_point='shapes_envs.shapes2d_continuous:Shapes2dContinuous',
+    entry_point='envs.shapes2d_continuous:Shapes2dContinuous',
     max_episode_steps=100,
     kwargs={
         'n_active_objects': 1,
@@ -206,7 +206,7 @@ register(
 
 register(
     'Navigation7x7ContinuousSlow-v0',
-    entry_point='shapes_envs.shapes2d_continuous:Shapes2dContinuous',
+    entry_point='envs.shapes2d_continuous:Shapes2dContinuous',
     max_episode_steps=100,
     kwargs={
         'n_active_objects': 4,
