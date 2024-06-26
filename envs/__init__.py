@@ -160,6 +160,21 @@ register(
 )
 
 register(
+    'Pushing7x7ContinuousSlow-v0',
+    entry_point='shapes_envs.shapes2d_continuous:Shapes2dContinuous',
+    max_episode_steps=100,
+    kwargs={
+        'n_active_objects': 1,
+        'n_passive_objects': 3,
+        'n_goal_objects': 1,
+        'velocity': 0.01,
+        'do_reward_active_objects': False,
+        'do_push_out_active_objects': False,
+        'do_push_out_passive_objects': False,
+    },
+)
+
+register(
     'Navigation7x7Continuous-v0',
     entry_point='envs.shapes2d_continuous:Shapes2dContinuous',
     max_episode_steps=100,
@@ -185,6 +200,21 @@ register(
         'velocity': 0.015,
         'do_reward_active_objects': True,
         'do_push_out_active_objects': True,
+        'do_push_out_passive_objects': False,
+    },
+)
+
+register(
+    'Navigation7x7ContinuousSlow-v0',
+    entry_point='shapes_envs.shapes2d_continuous:Shapes2dContinuous',
+    max_episode_steps=100,
+    kwargs={
+        'n_active_objects': 4,
+        'n_passive_objects': 0,
+        'n_goal_objects': 1,
+        'velocity': 0.01,
+        'do_reward_active_objects': True,
+        'do_push_out_active_objects': False,
         'do_push_out_passive_objects': False,
     },
 )
