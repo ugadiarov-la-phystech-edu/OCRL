@@ -141,6 +141,7 @@ register(
         'do_reward_active_objects': False,
         'do_push_out_active_objects': False,
         'do_push_out_passive_objects': False,
+        'field_size': 70,
     },
 )
 
@@ -156,6 +157,7 @@ register(
         'do_reward_active_objects': True,
         'do_push_out_active_objects': False,
         'do_push_out_passive_objects': False,
+        'field_size': 70,
     },
 )
 
@@ -171,6 +173,23 @@ register(
         'do_reward_active_objects': False,
         'do_push_out_active_objects': False,
         'do_push_out_passive_objects': False,
+        'field_size': 70,
+    },
+)
+
+register(
+    'Pushing5x5ContinuousSlow-v0',
+    entry_point='envs.shapes2d_continuous:Shapes2dContinuous',
+    max_episode_steps=100,
+    kwargs={
+        'n_active_objects': 1,
+        'n_passive_objects': 3,
+        'n_goal_objects': 1,
+        'velocity': 0.01,
+        'do_reward_active_objects': False,
+        'do_push_out_active_objects': False,
+        'do_push_out_passive_objects': False,
+        'field_size': 50,
     },
 )
 
@@ -186,6 +205,7 @@ register(
         'do_reward_active_objects': True,
         'do_push_out_active_objects': False,
         'do_push_out_passive_objects': False,
+        'field_size': 70,
     },
 )
 
@@ -201,6 +221,7 @@ register(
         'do_reward_active_objects': True,
         'do_push_out_active_objects': True,
         'do_push_out_passive_objects': False,
+        'field_size': 70,
     },
 )
 
@@ -216,5 +237,22 @@ register(
         'do_reward_active_objects': True,
         'do_push_out_active_objects': False,
         'do_push_out_passive_objects': False,
+        'field_size': 70,
+    },
+)
+
+register(
+    'Navigation5x5ContinuousSlow-v0',
+    entry_point='envs.shapes2d_continuous:Shapes2dContinuous',
+    max_episode_steps=100,
+    kwargs={
+        'n_active_objects': 4,
+        'n_passive_objects': 0,
+        'n_goal_objects': 1,
+        'velocity': 0.01,
+        'do_reward_active_objects': True,
+        'do_push_out_active_objects': False,
+        'do_push_out_passive_objects': False,
+        'field_size': 50,
     },
 )

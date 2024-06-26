@@ -131,7 +131,7 @@ class CollisionSystem:
     PASSIVE_PASSIVE = 'passive_passive'
     PASSIVE_WALL = 'passive_wall'
 
-    def __init__(self, n_particles, size=70, simulation_limit=10000, active_disappear_on_hit_goal=False,
+    def __init__(self, n_particles, object_size=10, field_size=70, simulation_limit=10000, active_disappear_on_hit_goal=False,
                  active_disappear_on_hit_wall=False, passive_disappear_on_hit_wall=False, visualize=False,
                  frame_rate=25):
         self.particles = None
@@ -139,11 +139,11 @@ class CollisionSystem:
         self.events = None
         self.t = 0
         self.colors = get_colors()
-        self.size = size
+        self.object_size = object_size
+        self.size = field_size
         self.simulation_limit = simulation_limit
         self.frame_rate = frame_rate
-        self.scale = self.size // 7
-        self.shapes = [render_shape(idx, self.scale) for idx in range(self.n_particles)]
+        self.shapes = [render_shape(idx, self.object_size) for idx in range(self.n_particles)]
         self.active_disappear_on_hit_goal = active_disappear_on_hit_goal
         self.active_disappear_on_hit_wall = active_disappear_on_hit_wall
         self.passive_disappear_on_hit_wall = passive_disappear_on_hit_wall
@@ -194,8 +194,8 @@ class CollisionSystem:
             if particle is None:
                 continue
 
-            rr = shape[0] + round(self.size * particle.rx - self.scale / 2)
-            cc = shape[1] + round(self.size * particle.ry - self.scale / 2)
+            rr = shape[0] + round(self.size * particle.rx - self.object_size / 2)
+            cc = shape[1] + round(self.size * particle.ry - self.object_size / 2)
             image[rr, cc, :] = color
 
         return image

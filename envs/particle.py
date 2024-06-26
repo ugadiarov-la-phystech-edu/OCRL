@@ -27,9 +27,9 @@ class Particle:
         self.count = 0
 
     @classmethod
-    def create(cls, index, np_random, kind, off_wall_placement, velocity=0.01, friction=0.0):
+    def create(cls, index, np_random, kind, object_size, off_wall_placement, velocity=0.01, friction=0.0):
         mass = 0.5
-        radius = 1 / 14 * (math.sqrt(2) + 1) / 2
+        radius = object_size / 2 * (math.sqrt(2) + 1) / 2
         margin = radius
         if off_wall_placement:
             margin += 2 * radius
