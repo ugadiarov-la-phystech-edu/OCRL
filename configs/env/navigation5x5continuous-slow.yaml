@@ -1,0 +1,6 @@
+defaults:
+    - _navigation_env_base
+    - _self_
+name: Navigation5x5ContinuousSlow-v0
+
+obs_size: 64
