@@ -97,12 +97,12 @@ class SLATE_Module(nn.Module):
             self.num_slots = num_slots
             self.rep_dim = slot_size
 
-        self.rtd_loss_coef = ocr_config.rtd_coef
-        self.rtd_regularizer = RTDRegularizer(ocr_config.lp, ocr_config.q_normalize)
+        self.rtd_loss_coef = ocr_config.topdis.rtd_loss_coef
+        self.rtd_regularizer = RTDRegularizer(ocr_config.topdis.lp, ocr_config.topdis.q_normalize)
         self.random_resized_crop = torchvision.transforms.Compose([
             torchvision.transforms.Lambda(lambda x: (x * 255).to(torch.uint8)),
             torchvision.transforms.RandomResizedCrop(
-                self._obs_size, scale=ocr_config.crop_scale,
+                self._obs_size, scale=ocr_config.topdis.crop_scale,
                 interpolation=torchvision.transforms.InterpolationMode.BICUBIC
             ),
             torchvision.transforms.Lambda(lambda x: x.to(torch.float32) / 255),
