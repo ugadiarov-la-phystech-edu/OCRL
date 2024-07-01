@@ -239,7 +239,7 @@ class SLATE_Module(nn.Module):
                                                         with_ce=True, init_slots=slots)
                 rtd_loss = self.rtd_regularizer.compute_reg(
                     attns.reshape(obs.shape[0] * obs.shape[1], obs.shape[2], obs.shape[3]),
-                    attns_augmented.reshape(obs.shape[0] * obs.shape[1], obs.shape[2], obs.shape[3]))
+                    attns_augmented.reshape(obs.shape[0] * slots.shape[1], obs.shape[2], obs.shape[3]))
 
             if masks is not None:
                 fg_mask = (1 - masks[:,-1].unsqueeze(1))
