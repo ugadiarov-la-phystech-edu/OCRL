@@ -255,7 +255,7 @@ class SLATE_Module(nn.Module):
                 attns = torch.cat([attns, fg_mask], dim=1)
                 ari = np.mean(calculate_ari(masks, attns))
             else:
-                ari = 0 # Mask is not given through dataset
+                ari = np.array(0, dtype=np.float32) # Mask is not given through dataset
 
             if self._use_bcdec:
                 recon = self._dec(slots)
