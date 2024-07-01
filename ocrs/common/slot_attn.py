@@ -144,7 +144,7 @@ class SlotAttentionEncoder(nn.Module):
             num_heads,
         )
 
-    def forward(self, x):
+    def forward(self, x, init_slots=None):
         # `image` has shape: [batch_size, img_channels, img_height, img_width].
         # `encoder_grid` has shape: [batch_size, pos_channels, enc_height, enc_width].
         B, *_ = x.size()
@@ -152,8 +152,12 @@ class SlotAttentionEncoder(nn.Module):
         # `x` has shape: [batch_size, enc_height * enc_width, cnn_hidden_size].
 
         # Slot Attention module.
-        slots = x.new_empty(B, self.num_slots, self.slot_size).normal_()
-        slots = self.slot_mu + torch.exp(self.slot_log_sigma) * slots
+        if init_slots is None:
+            slots = x.new_empty(B, self.num_slots, self.slot_size).normal_()
+            slots = self.slot_mu + torch.exp(self.slot_log_sigma) * slots
+        else:
+            slots = init_slots
+
         slots, attn = self.slot_attention(x, slots)
         # `slots` has shape: [batch_size, num_slots, slot_size].
         # `attn` has shape: [batch_size, enc_height * enc_width, num_slots].

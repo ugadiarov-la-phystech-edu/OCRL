@@ -1,10 +1,12 @@
 import math
 import torch
+import torchvision
 from torch import nn
 from torch.nn import functional as F
 from torch.optim.lr_scheduler import _LRScheduler
 from itertools import chain
 
+from ocrs.slate.rtd_regularizer import RTDRegularizer
 from utils.tools import *
 from ocrs.common.utils import (
     cosine_anneal,
@@ -95,6 +97,17 @@ class SLATE_Module(nn.Module):
             self.num_slots = num_slots
             self.rep_dim = slot_size
 
+        self.rtd_loss_coef = ocr_config.rtd_coef
+        self.rtd_regularizer = RTDRegularizer(ocr_config.lp, ocr_config.q_normalize)
+        self.random_resized_crop = torchvision.transforms.Compose([
+            torchvision.transforms.Lambda(lambda x: (x * 255).to(torch.uint8)),
+            torchvision.transforms.RandomResizedCrop(
+                self._obs_size, scale=ocr_config.crop_scale,
+                interpolation=torchvision.transforms.InterpolationMode.BICUBIC
+            ),
+            torchvision.transforms.Lambda(lambda x: x.to(torch.float32) / 255),
+        ])
+
     def get_dvae_params(self):
         return self._dvae.parameters()
 
@@ -131,12 +144,12 @@ class SLATE_Module(nn.Module):
         z_hard = gumbel_softmax(z_logits, self._tau, True, dim=1).detach()
         return z, z_hard
 
-    def _get_slots(self, obs, with_attns=False, z_hard=None, with_ce=False):
+    def _get_slots(self, obs, with_attns=False, z_hard=None, with_ce=False, init_slots=None):
         res = []
         emb = self._enc_pos(self._enc(obs))
         emb = emb.permute(0, 2, 3, 1).flatten(start_dim=1, end_dim=2)
         # apply slot attention
-        slots, attns = self._slotattn(emb)
+        slots, attns = self._slotattn(emb, init_slots=init_slots)
         res.append(slots)
         if with_attns:
             res.append(attns)
@@ -214,10 +227,20 @@ class SLATE_Module(nn.Module):
             }
         else:
             # get slots
-            slots, attns, cross_entropy = self._get_slots(obs, z_hard=z_hard, with_attns=True, with_ce=True)
+            slots, attns, cross_entropy = self._get_slots(obs, z_hard=z_hard, with_attns=True, with_ce=True,
+                                                          init_slots=None)
             attns = attns.transpose(-1, -2).reshape(
                 obs.shape[0], slots.shape[1], 1, obs.shape[2], obs.shape[3]
             )
+            rtd_loss = torch.as_tensor(0, dtype=torch.float32, device=attns.device)
+            if self.rtd_loss_coef > 0:
+                _, z_hard = self._get_z(obs)
+                _, attns_augmented, _ = self._get_slots(self.random_resized_crop(obs), z_hard=z_hard, with_attns=True,
+                                                        with_ce=True, init_slots=slots)
+                rtd_loss = self.rtd_regularizer.compute_reg(
+                    attns.reshape(obs.shape[0] * obs.shape[1], obs.shape[2], obs.shape[3]),
+                    attns_augmented.reshape(obs.shape[0] * obs.shape[1], obs.shape[2], obs.shape[3]))
+
             if masks is not None:
                 fg_mask = (1 - masks[:,-1].unsqueeze(1))
                 attns = attns * fg_mask
@@ -230,17 +253,19 @@ class SLATE_Module(nn.Module):
                 recon = self._dec(slots)
                 mse = ((obs - recon) ** 2).sum() / obs.shape[0]
                 metrics = {
-                    "loss": mse,
+                    "loss": mse + self.rtd_loss_coef * rtd_loss,
                     "mse": mse.detach(),
                     "ari": ari,
+                    "rtd_loss": rtd_loss.detach(),
                 }
             else:
                 metrics = {
-                    "loss": dvae_mse + cross_entropy,
+                    "loss": dvae_mse + cross_entropy + self.rtd_loss_coef * rtd_loss,
                     "dvae_mse": dvae_mse.detach(),
                     #"ari": ari,
                     "cross_entropy": cross_entropy.detach(),
                     "tau": torch.Tensor([self._tau]),
+                    "rtd_loss": rtd_loss.detach(),
                 }
                 # generate image tokens auto-regressively
                 if with_mse:
