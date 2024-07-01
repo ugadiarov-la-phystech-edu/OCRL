@@ -214,13 +214,13 @@ class SLATE_Module(nn.Module):
                 return self._get_slots(obs)
 
     def get_loss(self, obs: Tensor, masks, with_rep=False, with_mse=False) -> dict:
-        # get z
-        z, z_hard = self._get_z(obs)
-        B, _, H_enc, W_enc = z.size()
-        # dvae recon
-        recon = self._dvae.decode(z)
-        dvae_mse = ((obs - recon) ** 2).sum() / obs.shape[0]
         if self._dvae_pretraining_mode:
+            # get z
+            z, z_hard = self._get_z(obs)
+            B, _, H_enc, W_enc = z.size()
+            # dvae recon
+            recon = self._dvae.decode(z)
+            dvae_mse = ((obs - recon) ** 2).sum() / obs.shape[0]
             metrics = {
                 "loss": dvae_mse,
                 "dvae_mse": dvae_mse.detach(),
@@ -228,26 +228,45 @@ class SLATE_Module(nn.Module):
             }
         else:
             # get slots
-            slots, attns, cross_entropy = self._get_slots(obs, z_hard=z_hard, with_attns=True, with_ce=True,
-                                                          init_slots=None)
-            attns = attns.transpose(-1, -2).reshape(
-                obs.shape[0], slots.shape[1], 1, obs.shape[2], obs.shape[3]
-            )
+            if self._use_bcdec:
+                z_hard = None
+                slots, attns = self._get_slots(obs, z_hard=z_hard, with_attns=True, with_ce=False, init_slots=None)
+                recon = self._dec(slots)
+                cross_entropy = None
+            else:
+                z, z_hard = self._get_z(obs)
+                recon = self._dvae.decode(z)
+                slots, attns, cross_entropy = self._get_slots(obs, z_hard=z_hard, with_attns=True, with_ce=True,
+                                                              init_slots=None)
+
+            attns = attns.transpose(-1, -2).reshape(obs.shape[0], slots.shape[1], 1, obs.shape[2], obs.shape[3])
+            recon_augmented_loss = torch.as_tensor(0, dtype=torch.float32, device=attns.device)
             rtd_loss = torch.as_tensor(0, dtype=torch.float32, device=attns.device)
             if self.rtd_loss_coef > 0:
-                _, z_hard = self._get_z(obs)
-                slots_augmented, attns_augmented, _ = self._get_slots(self.random_resized_crop(obs), z_hard=z_hard,
-                                                                      with_attns=True, with_ce=True, init_slots=slots)
-                if not self.rtd_over_objects:
-                    reconstruction = self._dec(slots)
+                obs_augmented = self.random_resized_crop(obs)
+                if self._use_bcdec:
+                    slots_augmented, attns_augmented = self._get_slots(obs_augmented, z_hard=None, with_attns=True,
+                                                                       with_ce=False, init_slots=slots)
                     reconstruction_augmented = self._dec(slots_augmented)
-                    rtd_loss = self.rtd_regularizer.compute_reg(reconstruction, reconstruction_augmented)
                 else:
+                    z_augmented, z_hard_augmented = self._get_z(obs_augmented)
+                    reconstruction_augmented = self._dvae.decode(z_augmented)
+                    _, attns_augmented, cross_entropy_augmented = self._get_slots(obs_augmented,
+                                                                                  z_hard=z_hard_augmented,
+                                                                                  with_attns=True,
+                                                                                  with_ce=True,
+                                                                                  init_slots=slots)
+                    recon_augmented_loss += cross_entropy_augmented
+
+                recon_augmented_loss += ((obs_augmented - reconstruction_augmented) ** 2).sum() / obs.shape[0]
+                if self.rtd_over_objects:
                     rtd_loss = self.rtd_regularizer.compute_reg(
                         attns.reshape(obs.shape[0] * slots.shape[1], obs.shape[2], obs.shape[3]),
                         attns_augmented.transpose(-1, -2).reshape(obs.shape[0] * slots.shape[1], obs.shape[2],
                                                                   obs.shape[3])
                     )
+                else:
+                    rtd_loss = self.rtd_regularizer.compute_reg(recon, reconstruction_augmented)
 
             if masks is not None:
                 fg_mask = (1 - masks[:,-1].unsqueeze(1))
@@ -258,22 +277,24 @@ class SLATE_Module(nn.Module):
                 ari = np.array(0, dtype=np.float32) # Mask is not given through dataset
 
             if self._use_bcdec:
-                recon = self._dec(slots)
                 mse = ((obs - recon) ** 2).sum() / obs.shape[0]
                 metrics = {
-                    "loss": mse + self.rtd_loss_coef * rtd_loss,
+                    "loss": mse + recon_augmented_loss + self.rtd_loss_coef * rtd_loss,
                     "mse": mse.detach(),
                     "ari": ari,
                     "rtd_loss": rtd_loss.detach(),
+                    "recon_augmented_loss": recon_augmented_loss.detach(),
                 }
             else:
+                dvae_mse = ((obs - recon) ** 2).sum() / obs.shape[0]
                 metrics = {
-                    "loss": dvae_mse + cross_entropy + self.rtd_loss_coef * rtd_loss,
+                    "loss": dvae_mse + cross_entropy + recon_augmented_loss + self.rtd_loss_coef * rtd_loss,
                     "dvae_mse": dvae_mse.detach(),
-                    #"ari": ari,
+                    # "ari": ari,
                     "cross_entropy": cross_entropy.detach(),
                     "tau": torch.Tensor([self._tau]),
                     "rtd_loss": rtd_loss.detach(),
+                    "recon_augmented_loss": recon_augmented_loss.detach(),
                 }
                 # generate image tokens auto-regressively
                 if with_mse:
