@@ -1,6 +1,8 @@
-from rtd import *
+import numpy as np
 from scipy.special import softmax
 import torch
+
+from ocrs.slate.rtd import MinMaxRTDLoss, z_dist
 
 normal_s = lambda x: 0.5 * (torch.erf(x/np.sqrt(2)) + 1)
 normal_sinv = lambda x: np.sqrt(2) * torch.erfinv(2 * x - 1)
