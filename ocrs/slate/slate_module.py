@@ -107,6 +107,7 @@ class SLATE_Module(nn.Module):
             ),
             torchvision.transforms.Lambda(lambda x: x.to(torch.float32) / 255),
         ])
+        self.rtd_over_objects = ocr_config.topdis.rtd_over_objects
 
     def get_dvae_params(self):
         return self._dvae.parameters()
@@ -235,11 +236,18 @@ class SLATE_Module(nn.Module):
             rtd_loss = torch.as_tensor(0, dtype=torch.float32, device=attns.device)
             if self.rtd_loss_coef > 0:
                 _, z_hard = self._get_z(obs)
-                _, attns_augmented, _ = self._get_slots(self.random_resized_crop(obs), z_hard=z_hard, with_attns=True,
-                                                        with_ce=True, init_slots=slots)
-                rtd_loss = self.rtd_regularizer.compute_reg(
-                    attns.reshape(obs.shape[0] * slots.shape[1], obs.shape[2], obs.shape[3]),
-                    attns_augmented.reshape(obs.shape[0] * slots.shape[1], obs.shape[2], obs.shape[3]))
+                slots_augmented, attns_augmented, _ = self._get_slots(self.random_resized_crop(obs), z_hard=z_hard,
+                                                                      with_attns=True, with_ce=True, init_slots=slots)
+                if not self.rtd_over_objects:
+                    reconstruction = self._dec(slots)
+                    reconstruction_augmented = self._dec(slots_augmented)
+                    rtd_loss = self.rtd_regularizer.compute_reg(reconstruction, reconstruction_augmented)
+                else:
+                    rtd_loss = self.rtd_regularizer.compute_reg(
+                        attns.reshape(obs.shape[0] * slots.shape[1], obs.shape[2], obs.shape[3]),
+                        attns_augmented.transpose(-1, -2).reshape(obs.shape[0] * slots.shape[1], obs.shape[2],
+                                                                  obs.shape[3])
+                    )
 
             if masks is not None:
                 fg_mask = (1 - masks[:,-1].unsqueeze(1))

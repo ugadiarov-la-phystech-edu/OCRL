@@ -42,3 +42,4 @@ topdis:
   crop_scale:
     - 0.5
     - 1.0
+  rtd_over_objects: True
