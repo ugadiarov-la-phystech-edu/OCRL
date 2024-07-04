@@ -43,3 +43,4 @@ topdis:
     - 0.5
     - 1.0
   rtd_over_objects: True
+  rtd_detach_slots: False

@@ -108,6 +108,7 @@ class SLATE_Module(nn.Module):
             torchvision.transforms.Lambda(lambda x: x.to(torch.float32) / 255),
         ])
         self.rtd_over_objects = ocr_config.topdis.rtd_over_objects
+        self.rtd_detach_slots = ocr_config.topdis.rtd_detach_slots
 
     def get_dvae_params(self):
         return self._dvae.parameters()
@@ -251,11 +252,15 @@ class SLATE_Module(nn.Module):
                 else:
                     z_augmented, z_hard_augmented = self._get_z(obs_augmented)
                     reconstruction_augmented = self._dvae.decode(z_augmented)
+                    init_slots = slots
+                    if self.rtd_detach_slots:
+                        init_slots = init_slots.detach()
+
                     _, attns_augmented, cross_entropy_augmented = self._get_slots(obs_augmented,
                                                                                   z_hard=z_hard_augmented,
                                                                                   with_attns=True,
                                                                                   with_ce=True,
-                                                                                  init_slots=slots)
+                                                                                  init_slots=init_slots)
                     recon_augmented_loss += cross_entropy_augmented
 
                 recon_augmented_loss += ((obs_augmented - reconstruction_augmented) ** 2).sum() / obs.shape[0]
