@@ -124,7 +124,7 @@ class BroadCastDecoder(nn.Module):
         slots = slots.unsqueeze(-1).unsqueeze(-1)
         return slots.repeat(1, 1, self._obs_size, self._obs_size)
 
-    def forward(self, slots):
+    def forward(self, slots, return_attns=False):
         B, N, _ = slots.shape
         # [batch_size * num_slots, d_slots]
         slots = slots.flatten(0, 1)
@@ -138,4 +138,7 @@ class BroadCastDecoder(nn.Module):
         masks = masks.view(B, N, 1, self._obs_size, self._obs_size)
         masks = masks.softmax(dim=1)
         recon_slots_masked = img_slots * masks
-        return recon_slots_masked.sum(dim=1)
+        if return_attns:
+            return recon_slots_masked
+        else:
+            return recon_slots_masked.sum(dim=1)

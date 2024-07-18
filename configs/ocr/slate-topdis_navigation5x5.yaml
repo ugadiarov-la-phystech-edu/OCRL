@@ -37,7 +37,9 @@ learning:
   clip: 0.05
 
 topdis:
+  use_codeshift: True
   rtd_loss_coef: 6.0
+  weightnorm_sampler: True
   lp: 2
   q_normalize: True
   crop_scale:

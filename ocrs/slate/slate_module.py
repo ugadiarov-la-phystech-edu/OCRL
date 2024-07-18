@@ -22,6 +22,10 @@ from ocrs.common.transformer import LearnedPositionalEncoding, TransformerDecode
 from ocrs.common.models import BroadCastDecoder
 
 
+normal_s = lambda x: 0.5 * (torch.erf(x/np.sqrt(2)) + 1)
+normal_sinv = lambda x: np.sqrt(2) * torch.erfinv(2 * x - 1)
+
+
 class SLATE_Module(nn.Module):
     def __init__(self, ocr_config: dict, env_config: dict) -> None:
         super(SLATE_Module, self).__init__()
@@ -97,8 +101,11 @@ class SLATE_Module(nn.Module):
             self.num_slots = num_slots
             self.rep_dim = slot_size
 
+        self.slot_size = slot_size
         self.use_augmentation = ocr_config.use_augmentation
         self.rtd_loss_coef = ocr_config.topdis.rtd_loss_coef
+        self.use_codeshift = ocr_config.topdis.use_codeshift
+        self.weightnorm_sampler = ocr_config.topdis.weightnorm_sampler
         self.rtd_regularizer = RTDRegularizer(ocr_config.topdis.lp, ocr_config.topdis.q_normalize)
         self.random_resized_crop = torchvision.transforms.Compose([
             torchvision.transforms.Lambda(lambda x: (x * 255).to(torch.uint8)),
@@ -244,7 +251,37 @@ class SLATE_Module(nn.Module):
             attns = attns.transpose(-1, -2).reshape(obs.shape[0], slots.shape[1], 1, obs.shape[2], obs.shape[3])
             recon_augmented_loss = torch.as_tensor(0, dtype=torch.float32, device=attns.device)
             rtd_loss = torch.as_tensor(0, dtype=torch.float32, device=attns.device)
-            if self.use_augmentation or self.rtd_loss_coef > 0:
+
+            if self.use_codeshift and self.rtd_loss_coef > 0:
+                assert self._use_bcdec, f'SLATE is not implemented for shift in latent space'
+                if self.weightnorm_sampler:
+                    importance = self._dec._decoder[0].m.weight.norm(dim=0).flatten().detach().clone().cpu()
+                    probs = importance.numpy()
+                    probs = probs / max(probs.sum(), 1e-6)
+                    i = np.random.choice(self.slot_size, p=probs)
+                else:
+                    i = np.random.choice(self.slot_size)
+
+                j = np.random.choice(self.num_slots)
+                m_batch = slots[:, j, i].mean(0, keepdim=True)
+                s_batch = slots[:, j, i].std(0, keepdim=True)
+                z_norm = (slots[:, j, i] - m_batch) / s_batch
+                prob = normal_s(z_norm)
+                C = 1 / 8
+                sgn = torch.sign(torch.randn(1)).item()
+                if sgn > 0:
+                    mask = (prob + C < 1)
+                else:
+                    mask = (prob - C > 0)
+                    C = -C
+
+                z_valid = slots[mask].clone()
+                z_new = z_valid.clone()
+                z_new[:, j, i] = normal_sinv(prob[mask] + C) * s_batch + m_batch
+                mask_valid = self._dec(z_valid, return_attns=True)
+                mask_new = self._dec(z_new, return_attns=True)
+                rtd_loss = self.rtd_regularizer.compute_reg(mask_valid[:, j], mask_new[:, j])
+            elif self.use_augmentation or self.rtd_loss_coef > 0:
                 obs_augmented = self.random_resized_crop(obs)
                 init_slots = slots
                 if self.rtd_detach_slots:
