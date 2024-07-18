@@ -97,6 +97,7 @@ class SLATE_Module(nn.Module):
             self.num_slots = num_slots
             self.rep_dim = slot_size
 
+        self.use_augmentation = ocr_config.use_augmentation
         self.rtd_loss_coef = ocr_config.topdis.rtd_loss_coef
         self.rtd_regularizer = RTDRegularizer(ocr_config.topdis.lp, ocr_config.topdis.q_normalize)
         self.random_resized_crop = torchvision.transforms.Compose([
@@ -243,19 +244,19 @@ class SLATE_Module(nn.Module):
             attns = attns.transpose(-1, -2).reshape(obs.shape[0], slots.shape[1], 1, obs.shape[2], obs.shape[3])
             recon_augmented_loss = torch.as_tensor(0, dtype=torch.float32, device=attns.device)
             rtd_loss = torch.as_tensor(0, dtype=torch.float32, device=attns.device)
-            if self.rtd_loss_coef > 0:
+            if self.use_augmentation or self.rtd_loss_coef > 0:
                 obs_augmented = self.random_resized_crop(obs)
+                init_slots = slots
+                if self.rtd_detach_slots:
+                    init_slots = init_slots.detach()
+
                 if self._use_bcdec:
                     slots_augmented, attns_augmented = self._get_slots(obs_augmented, z_hard=None, with_attns=True,
-                                                                       with_ce=False, init_slots=slots)
+                                                                       with_ce=False, init_slots=init_slots)
                     reconstruction_augmented = self._dec(slots_augmented)
                 else:
                     z_augmented, z_hard_augmented = self._get_z(obs_augmented)
                     reconstruction_augmented = self._dvae.decode(z_augmented)
-                    init_slots = slots
-                    if self.rtd_detach_slots:
-                        init_slots = init_slots.detach()
-
                     _, attns_augmented, cross_entropy_augmented = self._get_slots(obs_augmented,
                                                                                   z_hard=z_hard_augmented,
                                                                                   with_attns=True,
@@ -264,14 +265,15 @@ class SLATE_Module(nn.Module):
                     recon_augmented_loss += cross_entropy_augmented
 
                 recon_augmented_loss += ((obs_augmented - reconstruction_augmented) ** 2).sum() / obs.shape[0]
-                if self.rtd_over_objects:
-                    rtd_loss = self.rtd_regularizer.compute_reg(
-                        attns.reshape(obs.shape[0] * slots.shape[1], obs.shape[2], obs.shape[3]),
-                        attns_augmented.transpose(-1, -2).reshape(obs.shape[0] * slots.shape[1], obs.shape[2],
-                                                                  obs.shape[3])
-                    )
-                else:
-                    rtd_loss = self.rtd_regularizer.compute_reg(recon, reconstruction_augmented)
+                if self.rtd_loss_coef > 0:
+                    if self.rtd_over_objects:
+                        rtd_loss = self.rtd_regularizer.compute_reg(
+                            attns.reshape(obs.shape[0] * slots.shape[1], obs.shape[2], obs.shape[3]),
+                            attns_augmented.transpose(-1, -2).reshape(obs.shape[0] * slots.shape[1], obs.shape[2],
+                                                                      obs.shape[3])
+                        )
+                    else:
+                        rtd_loss = self.rtd_regularizer.compute_reg(recon, reconstruction_augmented)
 
             if masks is not None:
                 fg_mask = (1 - masks[:,-1].unsqueeze(1))
@@ -324,11 +326,38 @@ class SLATE_Module(nn.Module):
         attns = obs.unsqueeze(1) * attns + (1.0 - attns)
         if self._use_bcdec:
             recon = self._dec(slots)
-            return {"samples": for_viz(visualize([obs, recon, attns]))}
+            result = {"samples": for_viz(visualize([obs, recon, attns]))}
         else:
             # generate image tokens auto-regressively
             recon_tf = self._gen_imgs(slots)
-            return {"samples": for_viz(visualize([obs, recon, recon_tf, attns]))}
+            result = {"samples": for_viz(visualize([obs, recon, recon_tf, attns]))}
+
+        if self.use_augmentation or self.rtd_loss_coef > 0:
+            obs_augmented = self.random_resized_crop(obs)
+            viz_data = [obs_augmented]
+            init_slots = slots
+            if self._use_bcdec:
+                slots_augmented, attns_augmented = self._get_slots(obs_augmented, z_hard=None, with_attns=True,
+                                                                   with_ce=False, init_slots=init_slots)
+            else:
+                z_augmented, z_hard_augmented = self._get_z(obs_augmented)
+                slots_augmented, attns_augmented, cross_entropy_augmented = self._get_slots(obs_augmented,
+                                                                              z_hard=z_hard_augmented,
+                                                                              with_attns=True,
+                                                                              with_ce=True,
+                                                                              init_slots=init_slots)
+                viz_data.append(self._gen_imgs(slots_augmented))
+
+            viz_data.insert(1, self._dec(slots_augmented))
+
+            attns_augmented = attns_augmented.transpose(-1, -2).reshape(
+                obs_augmented.shape[0], self._num_slots, 1, self._obs_size, self._obs_size
+            )
+            attns_augmented = obs_augmented.unsqueeze(1) * attns_augmented + (1.0 - attns_augmented)
+            viz_data.append(attns_augmented)
+            result['samples_augmented'] = for_viz(visualize(viz_data))
+
+        return result
 
     def update_tau(self, step: int) -> None:
         # update tau
