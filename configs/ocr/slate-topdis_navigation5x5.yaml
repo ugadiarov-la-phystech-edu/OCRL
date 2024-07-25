@@ -7,6 +7,7 @@ use_cnn_feat: False
 use_bcdec: True
 dvae_pretraining_mode: False
 use_augmentation: False
+init_slots_on_augmentation: True
 
 dvae:
   vocab_size: 32

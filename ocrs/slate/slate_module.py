@@ -103,6 +103,7 @@ class SLATE_Module(nn.Module):
 
         self.slot_size = slot_size
         self.use_augmentation = ocr_config.use_augmentation
+        self.init_slots_on_augmentation = ocr_config.init_slots_on_augmentation
         self.rtd_loss_coef = ocr_config.topdis.rtd_loss_coef
         self.use_codeshift = ocr_config.topdis.use_codeshift
         self.weightnorm_sampler = ocr_config.topdis.weightnorm_sampler
@@ -283,8 +284,8 @@ class SLATE_Module(nn.Module):
                 rtd_loss = self.rtd_regularizer.compute_reg(mask_valid[:, j], mask_new[:, j])
             elif self.use_augmentation or self.rtd_loss_coef > 0:
                 obs_augmented = self.random_resized_crop(obs)
-                init_slots = slots
-                if self.rtd_detach_slots:
+                init_slots = slots if self.init_slots_on_augmentation else None
+                if self.init_slots_on_augmentation and self.rtd_detach_slots:
                     init_slots = init_slots.detach()
 
                 if self._use_bcdec:
