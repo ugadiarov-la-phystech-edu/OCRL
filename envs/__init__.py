@@ -256,3 +256,25 @@ register(
         'field_size': 50,
     },
 )
+
+
+register(
+    'Navigation4x4-v0',
+    entry_point='envs.shapes2d:Shapes2d',
+    max_episode_steps=100,
+    kwargs={
+        'observation_type': 'shapes',
+        'border_walls': True,
+        'n_boxes': 5,
+        'n_goals': 1,
+        'n_static_boxes': 0,
+        'static_goals': True,
+        'width': 4,
+        'render_scale': 16,
+        'channel_wise': False,
+        'channels_first': False,
+        'ternary_interactions': False,
+        'embodied_agent': False,
+        'do_reward_push_only': False,
+    },
+)
