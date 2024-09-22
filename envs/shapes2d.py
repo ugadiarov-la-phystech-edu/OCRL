@@ -524,11 +524,14 @@ class AdHocNavigationAgent:
         self.env = env
         assert not env.embodied_agent
         assert env.static_goals
-        assert len(env.goal_ids) == 1
+        if len(env.goal_ids) == 0:
+            assert self.random_action_proba == 1.0
+        else:
+            assert len(env.goal_ids) == 1
         assert len(env.static_box_ids) == 0
 
     def act(self, observation, reward, done):
-        if random.random() < self.random_action_proba:
+        if random.random() <= self.random_action_proba:
             return self.env.action_space.sample()
 
         box_pos_in_game = [(idx, box_pos) for idx, box_pos in enumerate(self.env.box_pos)
