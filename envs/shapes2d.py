@@ -88,6 +88,8 @@ class Shapes2d(gym.Env):
     DEATH_REWARD = -1
     HIT_GOAL_REWARD = 1
     DESTROY_GOAL_REWARD = -1
+    SHAPE2RENDER = {'diamond': diamond, 'square': square, 'triangle': triangle, 'circle': circle, 'cross': cross,
+                    'pentagon': pentagon, 'parallelogram': parallelogram, 'scalene_triangle': scalene_triangle}
 
     def __init__(self, n_boxes=5, n_static_boxes=0, n_goals=1, static_goals=True, width=5, embodied_agent=False,
                  return_state=False, observation_type='shapes', border_walls=True, channels_first=True,
@@ -147,7 +149,7 @@ class Shapes2d(gym.Env):
             n_movable_objects = self.n_boxes - len(self.goal_ids) * self.static_goals - len(self.static_box_ids)
             self.action_space = spaces.Discrete(4 * n_movable_objects)
 
-        if self.observation_type in ('squares', 'shapes'):
+        if self.observation_type in ['shapes'] + list(self.SHAPE2RENDER.keys()):
             observation_shape = (self.w * self.render_scale, self.w * self.render_scale, self._get_image_channels())
             if self.channels_first:
                 observation_shape = (observation_shape[2], *observation_shape[:2])
@@ -177,12 +179,10 @@ class Shapes2d(gym.Env):
         return [seed]
 
     def _get_observation(self):
-        if self.observation_type == 'squares':
-            image = self.render_squares()
-        elif self.observation_type == 'shapes':
+        if self.observation_type == 'shapes':
             image = self.render_shapes()
         else:
-            assert False, f'Invalid observation type: {self.observation_type}.'
+            image = self.render_shape(self.observation_type)
 
         if self.return_state:
             return np.array(self.state), image
@@ -448,7 +448,7 @@ class Shapes2d(gym.Env):
         return ["down", "left", "up", "right"] * (
                 self.n_boxes - len(self.static_box_ids) - len(self.goal_ids) * self.static_goals)
 
-    def render_squares(self):
+    def render_shape(self, shape):
         im = np.zeros((self.w * self.render_scale, self.w * self.render_scale, self._get_image_channels()),
                       dtype=np.float32)
         for idx, pos in enumerate(self.box_pos):
@@ -456,7 +456,7 @@ class Shapes2d(gym.Env):
                 assert pos[1] == -1
                 continue
 
-            rr, cc = square(pos[0] * self.render_scale, pos[1] * self.render_scale, self.render_scale, im.shape)
+            rr, cc = self.SHAPE2RENDER[shape](pos[0] * self.render_scale, pos[1] * self.render_scale, self.render_scale, im.shape)
             if self.channel_wise:
                 im[rr, cc, idx] = 1
             else:
