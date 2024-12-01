@@ -40,8 +40,8 @@ def CwTargetEnv(config, seed):
             # hack for better performance so we don't need to render images
             env = CausalRLStateOnlyWrapper(env)
         else:
-            env = CausalRLRenderAndStateWrapper(env)
-        if config.render_mode == "image":
+            env = CausalRLRenderAndStateWrapper(env, height=config.obs_size, width=config.obs_size)
+        if config.render_mode in ("image", "rgb_array"):
             obs_key = "image"
         elif config.render_mode == "state":
             obs_key = "gt"
