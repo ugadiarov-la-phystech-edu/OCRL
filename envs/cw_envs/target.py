@@ -15,13 +15,14 @@ def CwTargetEnv(config, seed):
     assert config.mode in ["easy", "casual", "hard"]  # no normal for now
     assert config.rew_type in ["sparse"]  # only sparse for now
     task = SingleFingerReachTask(activate_sparse_reward=True)
+    skip_frame = config.get('skip_frame', 10)
     if config.render_mode == "finger_image":
         env = MyCausalWorld(
             seed=seed,
             task=task,
             observation_mode="pixel",
             camera_indicies=[0, 1, 2],
-            skip_frame=10,
+            skip_frame=skip_frame,
             enable_visualization=False,
         )
         env = SingleFingerCausalWorldWrapper(env, config)
@@ -32,7 +33,7 @@ def CwTargetEnv(config, seed):
             task=task,
             observation_mode="structured",
             camera_indicies=[0],
-            skip_frame=10,
+            skip_frame=skip_frame,
             enable_visualization=False,
         )
         env = SingleFingerCausalWorldWrapper(env, config)
