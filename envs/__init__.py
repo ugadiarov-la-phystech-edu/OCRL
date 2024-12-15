@@ -378,7 +378,7 @@ register(
 register(
     'Navigation5x5Polyform1-v0',
     entry_point='envs.shapes2d:Shapes2d',
-    max_episode_steps=1,
+    max_episode_steps=100,
     kwargs={
         'observation_type': 'shapes',
         'border_walls': True,
@@ -401,7 +401,7 @@ register(
 register(
     'Navigation5x5Polyform2-v0',
     entry_point='envs.shapes2d:Shapes2d',
-    max_episode_steps=1,
+    max_episode_steps=100,
     kwargs={
         'observation_type': 'shapes',
         'border_walls': True,
@@ -424,7 +424,7 @@ register(
 register(
     'Navigation5x5Polyform3-v0',
     entry_point='envs.shapes2d:Shapes2d',
-    max_episode_steps=1,
+    max_episode_steps=100,
     kwargs={
         'observation_type': 'shapes',
         'border_walls': True,
@@ -447,7 +447,7 @@ register(
 register(
     'Navigation5x5Polycolor1-v0',
     entry_point='envs.shapes2d:Shapes2d',
-    max_episode_steps=1,
+    max_episode_steps=100,
     kwargs={
         'observation_type': 'shapes',
         'border_walls': True,
@@ -471,7 +471,7 @@ register(
 register(
     'Navigation5x5Polycolor2-v0',
     entry_point='envs.shapes2d:Shapes2d',
-    max_episode_steps=1,
+    max_episode_steps=100,
     kwargs={
         'observation_type': 'shapes',
         'border_walls': True,
@@ -495,7 +495,7 @@ register(
 register(
     'Navigation5x5Polycolor3-v0',
     entry_point='envs.shapes2d:Shapes2d',
-    max_episode_steps=1,
+    max_episode_steps=100,
     kwargs={
         'observation_type': 'shapes',
         'border_walls': True,
