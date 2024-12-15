@@ -18,7 +18,7 @@ class DataSet(Dataset):
         self._need_resize = expected_shape != actual_shape
         self._num_samples = data["obss"].shape[0]
         if self._need_resize:
-            self._resize_transform = torchvision.transforms.Resize(self._obs_size, interpolation=torchvision.transforms.InterpolationMode.BILINEAR)
+            self._resize_transform = torchvision.transforms.Resize(self._obs_size, interpolation=torchvision.transforms.InterpolationMode.BICUBIC)
 
     def __getitem__(self, index):
         res = {}
