@@ -422,6 +422,29 @@ register(
 
 
 register(
+    'Navigation5x5Polyform3-v0',
+    entry_point='envs.shapes2d:Shapes2d',
+    max_episode_steps=1,
+    kwargs={
+        'observation_type': 'shapes',
+        'border_walls': True,
+        'n_boxes': 5,
+        'n_goals': 1,
+        'n_static_boxes': 0,
+        'static_goals': True,
+        'width': 5,
+        'render_scale': 10,
+        'channel_wise': False,
+        'channels_first': False,
+        'ternary_interactions': False,
+        'embodied_agent': False,
+        'do_reward_push_only': False,
+        'idx2possible_shape_id': [[0, 5], [1, 6], [2, 7], [3], [4]],
+    },
+)
+
+
+register(
     'Navigation5x5Polycolor1-v0',
     entry_point='envs.shapes2d:Shapes2d',
     max_episode_steps=1,
@@ -465,5 +488,29 @@ register(
         'do_reward_push_only': False,
         'idx2possible_shape_id': [[0], [1], [2], [3], [4]],
         'idx2possible_color_id': [[0, 5], [1, 6], [2], [3], [4]],
+    },
+)
+
+
+register(
+    'Navigation5x5Polycolor3-v0',
+    entry_point='envs.shapes2d:Shapes2d',
+    max_episode_steps=1,
+    kwargs={
+        'observation_type': 'shapes',
+        'border_walls': True,
+        'n_boxes': 5,
+        'n_goals': 1,
+        'n_static_boxes': 0,
+        'static_goals': True,
+        'width': 5,
+        'render_scale': 10,
+        'channel_wise': False,
+        'channels_first': False,
+        'ternary_interactions': False,
+        'embodied_agent': False,
+        'do_reward_push_only': False,
+        'idx2possible_shape_id': [[0], [1], [2], [3], [4]],
+        'idx2possible_color_id': [[0, 5], [1, 6], [2, 7], [3], [4]],
     },
 )
