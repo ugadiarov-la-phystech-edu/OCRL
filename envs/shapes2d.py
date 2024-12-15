@@ -94,7 +94,7 @@ class Shapes2d(gym.Env):
     def __init__(self, n_boxes=5, n_static_boxes=0, n_goals=1, static_goals=True, width=5, embodied_agent=False,
                  return_state=False, observation_type='shapes', border_walls=True, channels_first=True,
                  channel_wise=False, seed=None, render_scale=10, ternary_interactions=False, do_reward_push_only=False,
-                 use_random_shapes=False):
+                 idx2possible_shape_id=None, idx2possible_color_id=None):
         if n_static_boxes > 0:
             assert n_goals == 0 or static_goals, 'Cannot have movable goals with static objects.'
 
@@ -157,9 +157,24 @@ class Shapes2d(gym.Env):
         else:
             raise ValueError(f'Invalid observation_type: {self.observation_type}.')
 
+        self.idx2possible_shape_id = idx2possible_shape_id
+        if self.idx2possible_shape_id is None:
+            self.idx2possible_shape_id = [np.arange(8) for _ in range(self.n_boxes)]
+        else:
+            assert len(self.idx2possible_shape_id) == self.n_boxes, f'n_boxes={self.n_boxes}, n_possible_shapes={len(self.idx2possible_shape_id)}'
+            self.idx2possible_shape_id = [np.asarray(shape_ids) for shape_ids in self.idx2possible_shape_id]
+
+        self.idx2possible_color_id = idx2possible_color_id
+        if self.idx2possible_color_id is None:
+            self.idx2possible_color_id = [np.asarray([i]) for i in range(self.n_boxes)]
+        else:
+            assert len(
+                self.idx2possible_color_id) == self.n_boxes, f'n_boxes={self.n_boxes}, n_possible_colors={len(self.idx2possible_color_id)}'
+            self.idx2possible_color_id = [np.asarray(color_ids) for color_ids in self.idx2possible_color_id]
+
         self.state = None
         self.idx2shape_id = None
-        self.use_random_shapes = use_random_shapes
+        self.idx2color_id = None
         self.steps_taken = 0
         self.box_pos = np.zeros(shape=(self.n_boxes, 2), dtype=np.int32)
         self.speed = [{direction: 1 for direction in self.direction2action} for _ in range(self.n_boxes)]
@@ -234,10 +249,8 @@ class Shapes2d(gym.Env):
         self.state = state
         self.steps_taken = 0
         self.n_boxes_in_game = self.n_boxes - len(self.goal_ids) - int(self.embodied_agent) - int(self.do_reward_push_only)
-        if self.use_random_shapes:
-            self.idx2shape_id = random.choices(range(8), k=self.n_boxes)
-        else:
-            self.idx2shape_id = [i % 8 for i in range(self.n_boxes)]
+        self.idx2shape_id = [self.np_random.choice(shapes_id, replace=False) for shapes_id in self.idx2possible_shape_id]
+        self.idx2color_id = [self.np_random.choice(color_id, replace=False) for color_id in self.idx2possible_color_id]
 
         if not self.embodied_agent:
             self.n_boxes_in_game -= len(self.static_box_ids) * int(self.static_goals)
@@ -505,7 +518,8 @@ class Shapes2d(gym.Env):
             if self.channel_wise:
                 im[rr, cc, idx] = 1
             else:
-                im[rr, cc, :] = self.colors[idx][:3]
+                color_id = self.idx2color_id[idx]
+                im[rr, cc, :] = self.colors[color_id][:3]
 
         if self.channels_first:
             im = im.transpose([2, 0, 1])
