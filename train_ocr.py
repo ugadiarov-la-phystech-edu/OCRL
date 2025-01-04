@@ -17,6 +17,7 @@ log = logging.getLogger(__name__)
 
 @hydra.main(config_path="configs/", config_name="train_ocr")
 def main(config):
+    torch.set_float32_matmul_precision('medium')
     log_name = get_log_prefix(config)
     log_name += f"-{config.dataset.name}"
     tags = config.tags.split(",") + config.dataset.tags.split(",")

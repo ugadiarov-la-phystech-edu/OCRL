@@ -72,6 +72,7 @@ def make_maniskill(config_env, seed):
 
 @hydra.main(config_path="configs/", config_name="train_sb3")
 def main(config):
+    torch.set_float32_matmul_precision('medium')
     log_name = get_log_prefix(config)
     log_name += (
         f"-{config.sb3.name}-{config.sb3_acnet.name}-"
