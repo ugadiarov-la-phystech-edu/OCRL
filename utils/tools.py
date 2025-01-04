@@ -361,6 +361,10 @@ def get_ocr(ocr_config, env_config, cpt_config, device):
         )
         pretrained=True
     ocr.to(device)
+    if ocr_config.get('learning', None) is None:
+        ocr.eval()
+        ocr.freeze()
+
     if cpt_config.finetuning:
         return ocr._module, pretrained
     else:

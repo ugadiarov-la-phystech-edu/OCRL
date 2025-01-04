@@ -1,5 +1,3 @@
-import wandb
-import torch
 from torch.nn.utils import clip_grad_norm_
 
 from utils.tools import *
@@ -40,6 +38,12 @@ class Base:
     def eval(self) -> None:
         self._module.eval()
         return None
+
+    def freeze(self):
+        self._module.requires_grad_(False)
+
+    def unfreeze(self):
+        self._module.requires_grad_(True)
 
     def to(self, device: str) -> None:
         self._module.to(device)

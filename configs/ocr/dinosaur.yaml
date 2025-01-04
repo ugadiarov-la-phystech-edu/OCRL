@@ -1,0 +1,7 @@
+name: 'Dinosaur'
+model_name: 'vit_small_patch8_224_dino'
+input_feature_dim: 384
+num_patches: 784
+features: [1024, 1024, 1024]
+num_slots: 4
+slot_size: 128

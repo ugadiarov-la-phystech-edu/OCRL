@@ -8,3 +8,4 @@ from .vaes import VAE, VAE_Module
 #from .vit import ViT, ViT_Module
 from .multiple_cnns import MultipleCNN, MultipleCNN_Module
 from .mae import MAE, MAE_Module
+from .dinosaur.dinosaur import Dinosaur, Dinosaur_Module

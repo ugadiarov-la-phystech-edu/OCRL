@@ -1,0 +1,8 @@
+obs_size: 224
+obs_channels: 3
+name: ManiSkill
+mode: default
+rew_type: normalized_dense
+pose_reward_coef: 1.0
+tags: PushCubeCustom-v1
+num_stacked_obss: 1

@@ -19,6 +19,7 @@ video:
 
 log_interval: 1
 viz_interval: 30000
+visualize: true
 eval:
     freq: 2500
     n_episodes: 30

@@ -8,6 +8,7 @@ import omegaconf
 import stable_baselines3 as sb3
 import wandb
 from gym import spaces
+from gym.wrappers import TimeLimit
 from stable_baselines3.common.callbacks import EvalCallback
 from stable_baselines3.common.monitor import Monitor
 from stable_baselines3.common.utils import set_random_seed
@@ -17,6 +18,7 @@ from wandb.integration.sb3 import WandbCallback
 
 import envs
 import sb3s
+from envs.maniskill3 import ManiSkill
 from envs.robosuite import RobosuiteEnv
 from utils.tools import *
 
@@ -61,6 +63,13 @@ def make_robosuite_lift(config_env, seed=None):
     return env
 
 
+def make_maniskill(config_env, seed):
+    env = ManiSkill(config_env.rew_type, config_env.obs_size, config_env.pose_reward_coef)
+    env = TimeLimit(env, max_episode_steps=50)
+    env.seed(seed)
+    return env
+
+
 @hydra.main(config_path="configs/", config_name="train_sb3")
 def main(config):
     log_name = get_log_prefix(config)
@@ -90,6 +99,8 @@ def main(config):
                 env.action_space.seed(seed)
             elif config.env.name == 'Lift':
                 env = make_robosuite_lift(config.env)
+            elif config.env.name == 'ManiSkill':
+                env = make_maniskill(config.env, seed=seed)
             else:
                 env = getattr(envs, config.env.env)(config.env, seed)
             env = Monitor(env)  # record stats such as returns
@@ -113,6 +124,8 @@ def main(config):
                     env.action_space.seed(seed + rank)
                 elif config.env.name == 'Lift':
                     env = make_robosuite_lift(config.env, seed=seed + rank)
+                elif config.env.name == 'ManiSkill':
+                    env = make_maniskill(config.env, seed=seed + rank)
                 else:
                     env = getattr(envs, config.env.env)(config.env, seed + rank)
                 env = Monitor(env)  # record stats such as returns
@@ -139,6 +152,8 @@ def main(config):
         eval_env.action_space.seed(config.seed + config.num_envs)
     elif config.env.name == 'Lift':
         eval_env = make_robosuite_lift(config.env, seed=config.seed + config.num_envs)
+    elif config.env.name == 'ManiSkill':
+        eval_env = make_maniskill(config.env, seed=config.seed + config.num_envs)
     else:
         eval_env = getattr(envs, config.env.env)(
             config.env, seed=config.seed + config.num_envs
