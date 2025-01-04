@@ -187,17 +187,20 @@ def main(config):
         env,
         **model_kwargs,
     )
+    freq = config.eval.freq // config.num_envs
     model.learn(
         total_timesteps=config.max_steps,
         log_interval=config.log_interval,
         callback=[
             WandbCallback(
                 gradient_save_freq=config.wandb.log_gradient_freq,
+                model_save_freq=freq,
+                model_save_path=f"{wandb.run.dir}/models/",
                 verbose=2,
             ),
             EvalCallback(
                 eval_env,
-                eval_freq=config.eval.freq,
+                eval_freq=freq,
                 n_eval_episodes=config.eval.n_episodes,
                 best_model_save_path=f"{wandb.run.dir}/models/",
                 log_path=f"{wandb.run.dir}/eval_logs/",
