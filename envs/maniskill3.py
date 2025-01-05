@@ -12,9 +12,10 @@ from mani_skill.utils.structs import Array, Pose
 
 @register_env(uid='PushCubeCustom-v1', max_episode_steps=50)
 class PushCubeCustomEnv(PushCubeEnv):
-    def __init__(self, *args, pose_reward_coef=1., **kwargs):
+    def __init__(self, *args, pose_reward_coef=1., place_reward_coef=1., **kwargs):
         super().__init__(*args, **kwargs)
         self._pose_reward_coef = pose_reward_coef
+        self._place_reward_coef = place_reward_coef
 
     def compute_dense_reward(self, obs: Any, action: Array, info: Dict):
         # We also create a pose marking where the robot should push the cube from that is easiest (pushing from behind the cube)
@@ -35,7 +36,7 @@ class PushCubeCustomEnv(PushCubeEnv):
             self.obj.pose.p[..., :2] - self.goal_region.pose.p[..., :2], axis=1
         )
         place_reward = 1 - torch.tanh(5 * obj_to_goal_dist)
-        reward += place_reward * reached
+        reward += self._place_reward_coef * place_reward * reached
 
         # assign rewards to parallel environments that achieved success to the maximum of 3.
         reward[info["success"]] = 3
@@ -45,10 +46,11 @@ class PushCubeCustomEnv(PushCubeEnv):
 class ManiSkill(gym.Env):
     metadata = {"render.modes": ["rgb_array"]}
 
-    def __init__(self, reward_mode, image_size, pose_reward_coef=1.):
+    def __init__(self, reward_mode, image_size, pose_reward_coef=1., place_reward_coef=1.):
         self.env = gymnasium.make(
             'PushCubeCustom-v1',
             pose_reward_coef=pose_reward_coef,
+            place_reward_coef=place_reward_coef,
             obs_mode='rgbd',
             control_mode='pd_joint_delta_pos',
             render_mode='rgb_array',
