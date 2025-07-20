@@ -1,0 +1,9 @@
+defaults:
+  - _self_
+name: homegrid
+tags: homegrid
+obs_size: 64
+obs_channels: 3
+webdataset: false
+episode_dataset: true
+datadir: ''

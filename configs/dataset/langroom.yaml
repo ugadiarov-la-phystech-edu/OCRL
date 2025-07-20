@@ -1,0 +1,9 @@
+defaults:
+  - _self_
+name: langroom
+tags: langroom
+obs_size: 96
+obs_channels: 3
+webdataset: false
+episode_dataset: true
+datadir: ''

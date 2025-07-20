@@ -3,6 +3,7 @@ tags: ""
 datadir: null
 webdataset: false
 allow_resize: false
+episode_dataset: false
 dataset_checkpoint:
     entity: ''
     project: ''

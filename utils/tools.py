@@ -19,6 +19,7 @@ from scipy.optimize import linear_sum_assignment
 from sklearn.metrics import adjusted_rand_score
 
 from utils.datasets import DataSet
+from utils.episodes_dataset import EpisodesDataset
 from utils.webdataset.utils import webdataset_dataloaders
 
 
@@ -160,6 +161,17 @@ def preprocessing_obs(obs, device, type="image"):
 def get_dataloaders(config, batch_size, num_workers, replace=False, shuffle_on_validation=False):
     if config.webdataset:
         return webdataset_dataloaders(config, batch_size, num_workers, shuffle_val=shuffle_on_validation)
+
+    if config.episode_dataset:
+        parent_dir = Path(__file__).resolve().parents[1]
+        datafile = parent_dir / config.datadir
+        train_dl = DataLoader(
+            EpisodesDataset(datafile, mode='train', obs_size=config.obs_size, extension='JPEG'), batch_size,
+            num_workers=num_workers, shuffle=True
+        )
+        val_dl = DataLoader(EpisodesDataset(datafile, mode='val', obs_size=config.obs_size, extension='JPEG'),
+                            batch_size, shuffle=True)
+        return train_dl, val_dl
 
     if config.datadir:
         parent_dir = Path(__file__).resolve().parents[1]
