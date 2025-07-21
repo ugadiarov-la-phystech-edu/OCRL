@@ -166,11 +166,13 @@ def get_dataloaders(config, batch_size, num_workers, replace=False, shuffle_on_v
         parent_dir = Path(__file__).resolve().parents[1]
         datafile = parent_dir / config.datadir
         train_dl = DataLoader(
-            EpisodesDataset(datafile, mode='train', obs_size=config.obs_size, extension='JPEG'), batch_size,
-            num_workers=num_workers, shuffle=True
+            EpisodesDataset(datafile, mode='train', obs_size=config.obs_size, extension='JPEG',
+                            augmentation_probability=config.augmentation_probability), batch_size,
+            num_workers=num_workers, shuffle=True,
         )
-        val_dl = DataLoader(EpisodesDataset(datafile, mode='val', obs_size=config.obs_size, extension='JPEG'),
-                            batch_size, shuffle=True)
+        val_dl = DataLoader(EpisodesDataset(datafile, mode='val', obs_size=config.obs_size, extension='JPEG',
+                                            augmentation_probability=0.5),
+                            batch_size, shuffle=True,)
         return train_dl, val_dl
 
     if config.datadir:

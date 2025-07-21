@@ -1,6 +1,8 @@
 import time
 
 import numpy as np
+import skimage.io
+import torchvision.transforms
 from torch.utils.data import Dataset
 import glob
 import os
@@ -13,7 +15,8 @@ ImageFile.LOAD_TRUNCATED_IMAGES = True
 
 
 class EpisodesDataset(Dataset):
-    def __init__(self, root, mode, obs_size=128, allow_resize=True, extension='png', return_tensor=True, kind='image', sequence_length=1):
+    def __init__(self, root, mode, obs_size=128, allow_resize=True, extension='png', return_tensor=True, kind='image',
+                 sequence_length=1, augmentation_probability=0.):
         assert mode in ['train', 'val', 'valid', 'test']
         if mode in ('valid', 'test'):
             mode = 'val'
@@ -36,7 +39,11 @@ class EpisodesDataset(Dataset):
         self.mode = mode
         self.extension = extension
         self.return_tensor = return_tensor
+        self.augmentation_probability = augmentation_probability
         self.to_tensor = transforms.ToTensor()
+        self.augmentation_transforms = transforms.Compose(
+            [transforms.ToTensor(), transforms.RandomResizedCrop(size=self.res, scale=(0.4, 1.), ratio=(1, 1)),
+             transforms.RandomHorizontalFlip(), ])
 
         # Get all numbers
         self.folders = []
@@ -89,11 +96,19 @@ class EpisodesDataset(Dataset):
             # Implement continuous indexing
             offset = self.episode2offset[ep]
             in_episode_index = index - offset
-            img = Image.open(self.episode_images[ep][in_episode_index])
-            img = img.resize((self.res, self.res))
-
-            if self.return_tensor:
+            img = skimage.io.imread(self.episode_images[ep][in_episode_index])
+            if np.random.random() < self.augmentation_probability:
+                center = (np.random.random() * img.shape[1], np.random.random() * img.shape[0])
+                img = skimage.transform.rotate(img, angle=np.random.random() * 360, mode='reflect', center=center)
+                img = skimage.util.img_as_ubyte(img)
+                img = self.augmentation_transforms(img)
+            else:
+                img = Image.open(self.episode_images[ep][in_episode_index])
+                img = img.resize((self.res, self.res))
                 img = self.to_tensor(img)
+
+            if not self.return_tensor:
+                img = np.array(torchvision.transforms.ToPILImage(img))
 
             return {'obss': img}
         else:

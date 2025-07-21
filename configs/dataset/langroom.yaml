@@ -6,4 +6,5 @@ obs_size: 96
 obs_channels: 3
 webdataset: false
 episode_dataset: true
+augmentation_probability: 0
 datadir: ''
