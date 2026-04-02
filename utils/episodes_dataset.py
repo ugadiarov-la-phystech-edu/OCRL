@@ -1,4 +1,6 @@
+import io
 import time
+from pathlib import Path
 
 import numpy as np
 import skimage.io
@@ -10,13 +12,14 @@ import os.path as osp
 import torch
 from PIL import Image, ImageFile
 from torchvision import transforms
+from tqdm import tqdm
 
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 
 
 class EpisodesDataset(Dataset):
     def __init__(self, root, mode, obs_size=128, allow_resize=True, extension='png', return_tensor=True, kind='image',
-                 sequence_length=1, augmentation_probability=0.):
+                 sequence_length=1, augmentation_probability=0., episode_folder_pattern='*', cache=False):
         assert mode in ['train', 'val', 'valid', 'test']
         if mode in ('valid', 'test'):
             mode = 'val'
@@ -25,15 +28,12 @@ class EpisodesDataset(Dataset):
         if kind == 'image':
             assert sequence_length == 1, f'Expected sequence length: 1. Actual: {sequence_length}'
 
+        self.cache = cache
         self.kind = kind
         self.sequence_length = sequence_length
+        self.episode_folder_pattern = episode_folder_pattern
 
-        root = os.path.join(root, mode)
-        root_with_obs = os.path.join(root, 'obs')
-        if os.path.isdir(root_with_obs):
-            self.root = root_with_obs
-        else:
-            self.root = root
+        self.root = os.path.join(root, mode)
 
         self.res = obs_size
         self.mode = mode
@@ -48,14 +48,13 @@ class EpisodesDataset(Dataset):
         # Get all numbers
         self.folders = []
         start = time.time()
-        for file in os.listdir(self.root):
-            try:
-                self.folders.append(file)
-            except ValueError:
-                continue
+        for path in glob.glob(os.path.join(self.root, self.episode_folder_pattern)):
+            if osp.isdir(path):
+                self.folders.append(path)
 
         def get_num(x):
-            parts = x.split('_')
+            name = Path(x).name
+            parts = name.split('_')
             num = parts[0] if len(parts) == 1 else parts[1]
             return int(num)
 
@@ -75,6 +74,21 @@ class EpisodesDataset(Dataset):
             self.episode2offset.append(self.episode2offset[-1] + actual_length)
 
         print(f'Dataset indexing took {time.time() - start} seconds')
+
+        if self.cache:
+            # read image files into episode_images as bytes
+            start = time.time()
+            episode_image_bytes = []
+            for paths in tqdm(self.episode_images, desc=f'Caching split: {self.mode}'):
+                image_bytes = []
+                for path in paths:
+                    with open(path, 'rb') as f:
+                        image_bytes.append(io.BytesIO(f.read()))
+
+                episode_image_bytes.append(image_bytes)
+
+            self.episode_images = episode_image_bytes
+            print(f'Dataset caching took {time.time() - start} seconds')
 
     def __getitem__(self, index):
         if self.kind == 'video':

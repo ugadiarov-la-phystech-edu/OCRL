@@ -1,9 +1,10 @@
-# setuptools==65.5.0 install before requirements.txt
+# pip install setuptools==65.5.0 "wheel<0.40.0" pip==24.0
 gym==0.21.0
 spriteworld
 tqdm
 torch
 wandb
+comet_ml
 hydra-core
 omegaconf
 matplotlib
@@ -27,3 +28,6 @@ tensorboard
 causal_world
 opencv-python==4.7.0.72
 timm==0.4.12 # for pytorch 2.
+torchdata==0.9.0
+braceexpand
+torchtyping

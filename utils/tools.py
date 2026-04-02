@@ -1,13 +1,13 @@
 import math
+import numbers
 import os
-from pathlib import Path
+import sys
 
 # Types
 from typing import Callable, Dict, List, Optional, Tuple, Type, TypeVar, Union
 
+import comet_ml
 import h5py
-import numpy as np
-import omegaconf
 import torch
 import wandb
 import logging
@@ -77,6 +77,30 @@ def get_log_prefix(config):
         prefix += f"-{config.pooling.name}"
     return prefix
 
+
+def init_comet(log_name, tags=()):
+    experiment_name = os.environ.get("COMET_EXPERIMENT_NAME", log_name)
+    run_id = os.environ.get("COMET_RUN_ID", None)
+    mode = 'create' if run_id is None else 'get'
+    experiment = comet_ml.start(experiment_key=run_id, mode=mode)
+    experiment.add_tag(experiment_name)
+    experiment.set_name(experiment_name)
+    experiment.log_system_info('command', ' '.join(sys.argv))
+    for tag in tags:
+        experiment.add_tag(tag)
+
+    import socket
+    experiment.log_system_info('hostname', socket.gethostname())
+
+    try:
+        import git
+        repo = git.Repo(search_parent_directories=True)
+        experiment.log_system_info('git-branch', repo.active_branch.name)
+        experiment.log_system_info('git-commit', repo.head.object.hexsha)
+    except Exception as e:
+        print('An error occurred trying to log git info: {}'.format(e))
+
+    return experiment
 
 def init_wandb(config, log_name, tags="", sync_tensorboard=None, monitor_gym=None):
     if config.wandb.offline:
@@ -167,12 +191,16 @@ def get_dataloaders(config, batch_size, num_workers, replace=False, shuffle_on_v
         datafile = parent_dir / config.datadir
         train_dl = DataLoader(
             EpisodesDataset(datafile, mode='train', obs_size=config.obs_size, extension='JPEG',
-                            augmentation_probability=config.augmentation_probability), batch_size,
+                            augmentation_probability=config.get('augmentation_probability', 0),
+                            episode_folder_pattern=config.get('episode_folder_pattern', '*'),
+                            cache=config.get('cache', False),), batch_size,
             num_workers=num_workers, shuffle=True,
         )
-        val_dl = DataLoader(EpisodesDataset(datafile, mode='val', obs_size=config.obs_size, extension='JPEG',
-                                            augmentation_probability=0.5),
-                            batch_size, shuffle=True,)
+        val_dl = DataLoader(
+            EpisodesDataset(datafile, mode='val', obs_size=config.obs_size, extension='JPEG',
+                            augmentation_probability=config.get('augmentation_probability', 0),
+                            episode_folder_pattern=config.get('episode_folder_pattern', '*'),
+                            cache=config.get('cache', False),), batch_size, shuffle=True,)
         return train_dl, val_dl
 
     if config.datadir:
@@ -215,7 +243,9 @@ def to_device(batch, device):
 
 # get_item from pytorch tensor
 def get_item(x):
-    if len(x.shape) == 0:
+    if isinstance(x, numbers.Number):
+        return x
+    elif len(x.shape) == 0:
         return x.item()
     else:
         return x.detach().cpu().numpy()
@@ -242,7 +272,7 @@ def visualize(images):
 
 
 # Load model and params
-def load(model, agent_training=False, resume_checkpoint=None, resume_run_path=None, is_pretrained=False, only_dvae=False):
+def load(model, experiment_path, agent_training=False, resume_checkpoint=None, resume_run_path=None, is_pretrained=False, only_dvae=False):
     checkpoint = None
     if resume_checkpoint is not None:
         checkpoint = torch.load(
@@ -256,7 +286,7 @@ def load(model, agent_training=False, resume_checkpoint=None, resume_run_path=No
             map_location=next(model._module.parameters()).device,
         )
     else:
-        model_checkpoint = Path(wandb.run.dir) / "checkpoints" / "model_latest.pth"
+        model_checkpoint = Path(experiment_path) / "checkpoints" / "model_latest.pth"
         if model_checkpoint.exists():
             checkpoint = torch.load(
                 model_checkpoint, map_location=next(model._module.parameters()).device
@@ -297,6 +327,7 @@ def load(model, agent_training=False, resume_checkpoint=None, resume_run_path=No
 # Save model and params
 def save(
     model,
+    experiment_path,
     step=0,
     epoch=0,
     best_val_loss=1e5,
@@ -306,7 +337,8 @@ def save(
     save_step=True,
 ):
     sub_dir = "checkpoints"
-    model_dir = Path(wandb.run.dir) / sub_dir
+    model_dir = Path(experiment_path) / sub_dir
+    model_dir.mkdir(parents=True, exist_ok=True)
     if agent_training:
         checkpoint = {"step": step, "episode": episode}
     else:
@@ -314,13 +346,10 @@ def save(
     checkpoint.update(model.save())
     if save_step:
         torch.save(checkpoint, model_dir / f"model_{step}.pth")
-        wandb.save(f"{sub_dir}/model_{step}.pth")
 
     torch.save(checkpoint, model_dir / f"model_latest.pth")
-    wandb.save(f"{sub_dir}/model_latest.pth")
     if best:
         torch.save(checkpoint, model_dir / f"model_best.pth")
-        wandb.save(f"{sub_dir}/model_best.pth")
 
 
 # hungarian matching

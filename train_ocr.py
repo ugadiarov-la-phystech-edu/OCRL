@@ -5,8 +5,8 @@ from contextlib import nullcontext
 import hydra
 import numpy as np
 import torch
+import torchvision
 import tqdm
-import wandb
 
 import ocrs
 import utils
@@ -21,7 +21,7 @@ def main(config):
     log_name = get_log_prefix(config)
     log_name += f"-{config.dataset.name}"
     tags = config.tags.split(",") + config.dataset.tags.split(",")
-    init_wandb(config, "TrainOCR-" + log_name, tags=tags)
+    experiment = init_comet("TrainOCR-" + log_name, tags=tags)
     np.random.seed(config.seed)
     torch.manual_seed(config.seed)
 
@@ -37,11 +37,12 @@ def main(config):
     if config.ocr.name == "MAE":
         config.ocr.learning.lr = config.ocr.learning.lr * config.batch_size/256
     model = getattr(ocrs, config.ocr.name)(config.ocr, config.dataset)
-    model.wandb_watch(config.wandb)
     model.to(config.device)
 
+    experiment_path = hydra.core.hydra_config.HydraConfig.get()['runtime']['output_dir']
+
     # load
-    step, epoch, best_val_loss = load(model,
+    step, epoch, best_val_loss = load(model, experiment_path,
             resume_checkpoint=config.load.resume_checkpoint,
             resume_run_path=config.load.resume_run_path,
             is_pretrained=config.load.is_pretrained,
@@ -57,23 +58,22 @@ def main(config):
                     to_device(batch["masks"].permute(0,1,4,2,3), config.device) if "masks" in batch.keys() else None,
                     step
             )
-            wandb.log({f"train/{k}": v for k, v in metrics.items()}, step=step)
+            experiment.log_metrics({f"train/{k}": v for k, v in metrics.items()}, step=step)
             step += 1
             bar.update(1)
 
             if step % config.eval_interval == 0:
                 model.eval()
-                model, best_val_loss = eval_and_save(model, val_dl, epoch, step, best_val_loss, config)
+                model, best_val_loss = eval_and_save(model, val_dl, epoch, step, best_val_loss, config, experiment, experiment_path)
                 model.train()
         if hasattr(model, "scheduler"):
             model.scheduler.step()
         epoch += 1
-        wandb.log({"epoch": epoch}, step=step)
+        experiment.log_metrics({"epoch": epoch}, step=step)
 
-    # wandb finish
-    wandb.finish()
+    experiment.finish()
 
-def eval_and_save(model, val_dl, epoch, step, best_val_loss, config):
+def eval_and_save(model, val_dl, epoch, step, best_val_loss, config, experiment, experiment_path):
     with torch.no_grad() if config.ocr.name != 'Iodine' else nullcontext():
         metrics = []
         for idx, batch in enumerate(val_dl):
@@ -93,24 +93,26 @@ def eval_and_save(model, val_dl, epoch, step, best_val_loss, config):
             best_val_loss = metrics["loss"].item()
             best = True
         metrics.update({"best_loss": best_val_loss})
-        wandb.log({f"val/{k}": v for k, v in metrics.items()}, step=step)
+        experiment.log_metrics({f"val/{k}": v for k, v in metrics.items()}, step=step)
         log.info(
             f"[Epoch {epoch}, Step {step}] "
             + " / ".join(f"val/{k} {v:.4f}" for k, v in metrics.items())
         )
-    if best:
-        samples = model.get_samples(
-           to_device(batch["obss"], config.device)[: config.num_visualization]
-        )
-        wandb.log(
-            {k: [wandb.Image(_v) for _v in v] for k, v in samples.items()},
-            step=step,
-        )
+
+    samples = model.get_samples(
+       to_device(batch["obss"], config.device)[: config.num_visualization]
+    )
+    for k, v in samples.items():
+        v = torch.as_tensor(v, dtype=torch.float32).permute(0, 3, 1, 2) / 255.
+        grid = torchvision.utils.make_grid(v, nrow=1, pad_value=0.5).permute(1, 2, 0).numpy()
+        experiment.log_image(grid, name=k, step=step)
+
     if config.ocr.name == "SlotAttn":
         model.decay_lr(best)
 
     save(
         model,
+        experiment_path,
         step=step,
         epoch=epoch,
         best_val_loss=best_val_loss,
