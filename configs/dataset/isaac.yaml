@@ -1,12 +1,12 @@
 defaults:
   - _self_
-name: robosuite
-tags: robosuite
-obs_size: 128
+name: isaac
+tags: isaac
+obs_size: 64
 obs_channels: 3
 webdataset: false
 episode_dataset: true
 augmentation_probability: 0
-episode_folder_pattern: '*/*'
+episode_folder_pattern: '*'
 cache: true
 datadir: ''
