@@ -63,9 +63,8 @@ class EpisodesDataset(Dataset):
         self.episode_images = []
         self.episode2offset = [0]
         self.index2episode = []
-        for i, f in enumerate(self.folders):
-            dir_name = os.path.join(self.root, str(f))
-            paths = list(glob.glob(osp.join(dir_name, f'*.{self.extension}')))
+        for i, f in enumerate(tqdm(self.folders, desc=f"Indexing split: {self.mode}")):
+            paths = list(glob.glob(osp.join(f, f'*.{self.extension}')))
             actual_length = len(paths)
             get_file_id = lambda x: get_num(osp.splitext(osp.basename(x))[0])
             paths.sort(key=get_file_id)
