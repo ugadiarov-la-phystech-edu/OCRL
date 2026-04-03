@@ -259,17 +259,24 @@ class SLATE_Module(nn.Module):
         recon = self._dvae.decode(z)
         # get slots
         slots, attns = self._get_slots(obs, with_attns=True)
+        attns_hard_indices = torch.argmax(attns, dim=-1)
+        attns_hard = F.one_hot(attns_hard_indices, num_classes=attns.shape[-1]).to(torch.float32)
+        attns = self._expand_attn_masks(attns, obs)
+        attns_hard = self._expand_attn_masks(attns_hard, obs)
+        if self._use_bcdec:
+            recon = self._dec(slots)
+            return {"samples": for_viz(visualize([obs, recon, attns])), "samples_hard": for_viz(visualize([obs, recon, attns_hard]))}
+        else:
+            # generate image tokens auto-regressively
+            recon_tf = self._gen_imgs(slots)
+            return {"samples": for_viz(visualize([obs, recon, recon_tf, attns])), "samples_hard": for_viz(visualize([obs, recon, recon_tf, attns_hard]))}
+
+    def _expand_attn_masks(self, attns, obs):
         attns = attns.transpose(-1, -2).reshape(
             obs.shape[0], self._num_slots, 1, self._obs_size, self._obs_size
         )
         attns = obs.unsqueeze(1) * attns + (1.0 - attns)
-        if self._use_bcdec:
-            recon = self._dec(slots)
-            return {"samples": for_viz(visualize([obs, recon, attns]))}
-        else:
-            # generate image tokens auto-regressively
-            recon_tf = self._gen_imgs(slots)
-            return {"samples": for_viz(visualize([obs, recon, recon_tf, attns]))}
+        return attns
 
     def update_tau(self, step: int) -> None:
         # update tau
