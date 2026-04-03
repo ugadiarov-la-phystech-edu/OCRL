@@ -9,4 +9,5 @@ episode_dataset: true
 augmentation_probability: 0
 episode_folder_pattern: '*/*'
 cache: true
+extension: JPEG
 datadir: ''

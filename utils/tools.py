@@ -190,14 +190,14 @@ def get_dataloaders(config, batch_size, num_workers, replace=False, shuffle_on_v
         parent_dir = Path(__file__).resolve().parents[1]
         datafile = parent_dir / config.datadir
         train_dl = DataLoader(
-            EpisodesDataset(datafile, mode='train', obs_size=config.obs_size, extension='JPEG',
+            EpisodesDataset(datafile, mode='train', obs_size=config.obs_size, extension=config.extenstion,
                             augmentation_probability=config.get('augmentation_probability', 0),
                             episode_folder_pattern=config.get('episode_folder_pattern', '*'),
                             cache=config.get('cache', False),), batch_size,
             num_workers=num_workers, shuffle=True,
         )
         val_dl = DataLoader(
-            EpisodesDataset(datafile, mode='val', obs_size=config.obs_size, extension='JPEG',
+            EpisodesDataset(datafile, mode='val', obs_size=config.obs_size, extension=config.extenstion,
                             augmentation_probability=config.get('augmentation_probability', 0),
                             episode_folder_pattern=config.get('episode_folder_pattern', '*'),
                             cache=config.get('cache', False),), batch_size, shuffle=True,)
