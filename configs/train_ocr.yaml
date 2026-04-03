@@ -6,6 +6,7 @@ defaults:
   - wandb: train_ocr
 
 eval_interval: 1000
+log_interval: 5
 
 hydra:
   run:

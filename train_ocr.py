@@ -58,7 +58,9 @@ def main(config):
                     to_device(batch["masks"].permute(0,1,4,2,3), config.device) if "masks" in batch.keys() else None,
                     step
             )
-            experiment.log_metrics({f"train/{k}": v for k, v in metrics.items()}, step=step)
+            if step % config.log_interval:
+                experiment.log_metrics({f"train/{k}": v for k, v in metrics.items()}, step=step)
+
             step += 1
             bar.update(1)
 
