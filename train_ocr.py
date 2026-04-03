@@ -39,7 +39,7 @@ def main(config):
     model = getattr(ocrs, config.ocr.name)(config.ocr, config.dataset)
     model.to(config.device)
 
-    experiment_path = hydra.core.hydra_config.HydraConfig.get()['runtime']['output_dir']
+    experiment_path = os.path.join(hydra.core.hydra_config.HydraConfig.get()['runtime']['output_dir'], experiment.name)
 
     # load
     step, epoch, best_val_loss = load(model, experiment_path,
