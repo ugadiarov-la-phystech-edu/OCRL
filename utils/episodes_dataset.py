@@ -109,8 +109,8 @@ class EpisodesDataset(Dataset):
             # Implement continuous indexing
             offset = self.episode2offset[ep]
             in_episode_index = index - offset
-            img = skimage.io.imread(self.episode_images[ep][in_episode_index])
             if np.random.random() < self.augmentation_probability:
+                img = skimage.io.imread(self.episode_images[ep][in_episode_index])
                 center = (np.random.random() * img.shape[1], np.random.random() * img.shape[0])
                 img = skimage.transform.rotate(img, angle=np.random.random() * 360, mode='reflect', center=center)
                 img = skimage.util.img_as_ubyte(img)
