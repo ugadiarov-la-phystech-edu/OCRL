@@ -33,4 +33,5 @@ braceexpand
 torchtyping
 gymnasium==0.29.1
 Pillow==9.5.0
-
+robosuite==1.4.1
+mani_skill==3.0.0b10
