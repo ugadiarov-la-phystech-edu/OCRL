@@ -265,11 +265,11 @@ class SLATE_Module(nn.Module):
         attns_hard = self._expand_attn_masks(attns_hard, obs)
         if self._use_bcdec:
             recon = self._dec(slots)
-            return {"samples": for_viz(visualize([obs, recon, attns])), "samples_hard": for_viz(visualize([obs, recon, attns_hard]))}
+            return {"samples": merge([obs, recon, attns]), "samples_hard": merge([obs, recon, attns_hard])}
         else:
             # generate image tokens auto-regressively
             recon_tf = self._gen_imgs(slots)
-            return {"samples": for_viz(visualize([obs, recon, recon_tf, attns])), "samples_hard": for_viz(visualize([obs, recon, recon_tf, attns_hard]))}
+            return {"samples": merge([obs, recon, recon_tf, attns]), "samples_hard": merge([obs, recon, recon_tf, attns_hard])}
 
     def _expand_attn_masks(self, attns, obs):
         attns = attns.transpose(-1, -2).reshape(

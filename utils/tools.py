@@ -271,6 +271,20 @@ def visualize(images):
     return viz_imgs
 
 
+def merge(images):
+    images_expanded = []
+    for image in images:
+        if len(image.shape) == 4:
+            images_expanded.append(image.unsqueeze(1))
+        else:
+            if len(image.shape) != 5:
+                raise ValueError(f"Unexpected image shape: {image.shape}")
+
+            images_expanded.append(image)
+
+    return torch.cat(images_expanded, dim=1).clamp(0, 1).detach().cpu()
+
+
 # Load model and params
 def load(model, experiment_path, agent_training=False, resume_checkpoint=None, resume_run_path=None, is_pretrained=False, only_dvae=False):
     checkpoint = None

@@ -105,8 +105,9 @@ def eval_and_save(model, val_dl, epoch, step, best_val_loss, config, experiment,
        to_device(batch["obss"], config.device)[: config.num_visualization]
     )
     for k, v in samples.items():
-        v = torch.as_tensor(v, dtype=torch.float32).permute(0, 3, 1, 2) / 255.
-        grid = torchvision.utils.make_grid(v, nrow=1, pad_value=0.5).permute(1, 2, 0).numpy()
+        B, N = v.shape[:2]
+        v = v.flatten(end_dim=1)
+        grid = torchvision.utils.make_grid(v, nrow=N, pad_value=0.5).permute(1, 2, 0).numpy()
         experiment.log_image(grid, name=k, step=step)
 
     if config.ocr.name == "SlotAttn":
