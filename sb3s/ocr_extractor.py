@@ -37,10 +37,5 @@ class OCRExtractor(BaseFeaturesExtractor):
     def forward(self, observations: Tensor) -> Tensor:
         if self._ocr_pretraining and self._visualize:
             if observations.shape[0] == self._num_envs:
-                if self._viz_step % self._viz_interval == 0:
-                    samples = self._ocr.get_samples(observations)
-                    wandb.log(
-                        {k: [wandb.Image(_v) for _v in v] for k, v in samples.items()},
-                    )
                 self._viz_step += 1
         return self._pooling(self._ocr(observations))

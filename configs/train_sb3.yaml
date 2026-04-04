@@ -26,4 +26,4 @@ eval:
 
 hydra:
   run:
-    dir: ./outputs/train_sb3/${ocr.name}-${pooling.name}-${sb3.name}-${env.name}/hydra/${now:%Y-%m-%d_%H-%M-%S}
+    dir: ./outputs/train_sb3/${ocr.name}-${pooling.name}-${sb3.name}-${env.name}-seed-${seed}/hydra/${now:%Y-%m-%d_%H-%M-%S}

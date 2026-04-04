@@ -1,6 +1,7 @@
 import gym
 import numpy as np
 import robosuite
+from PIL import Image
 from robosuite import load_controller_config
 from robosuite.utils.placement_samplers import UniformRandomSampler, ObjectPositionSampler
 
@@ -8,8 +9,8 @@ from copy import copy
 
 
 class FixedPositionSampler(ObjectPositionSampler):
-    def __init__(self, name, task, mujoco_objects=None, ensure_object_boundary_in_range=True, ensure_valid_placement=True,
-                 reference_pos=(0, 0, 0), z_offset=0.0):
+    def __init__(self, name, task, mujoco_objects=None, ensure_object_boundary_in_range=True,
+                 ensure_valid_placement=True, reference_pos=(0, 0, 0), z_offset=0.0):
         # Setup attributes
         super().__init__(name, mujoco_objects, ensure_object_boundary_in_range, ensure_valid_placement, reference_pos,
                          z_offset)
@@ -20,7 +21,7 @@ class FixedPositionSampler(ObjectPositionSampler):
             self.placement = {'cubeA': ((0.05, -0.15, 0.8300000000000001),
                                         np.array([-0.84408914, 0., 0., 0.53620288], dtype=np.float32)),
                               'cubeB': ((-0.05, 0.2, 0.8350000000000001),
-                                        np.array([-0.85059733, 0., 0., 0.52581763], dtype=np.float32)),}
+                                        np.array([-0.85059733, 0., 0., 0.52581763], dtype=np.float32)), }
         else:
             self.placement = {
                 'cube': ((0.12, 0.12, 0.8350000000000001), np.array([-0.5, 0., 0., 0.8], dtype=np.float32))}
@@ -42,13 +43,16 @@ class FixedPositionSampler(ObjectPositionSampler):
 class RobosuiteEnv(gym.Env):
     metadata = {"render.modes": ["rgb_array"]}
 
-    def __init__(self, task, horizon, seed, initialization_noise_magnitude=None, use_random_object_position=False):
-        assert task in ('Lift', 'Stack')
+    def __init__(self, task, horizon, initialization_noise_magnitude, use_random_object_position, raw_observation,
+                 obs_size, seed):
+        self._robot = 'Panda'
         self._task = task
         self._horizon = horizon
         self._initialization_noise_magnitude = initialization_noise_magnitude
         self._use_random_object_position = use_random_object_position
+        self._raw_observation = raw_observation
         self._seed = seed
+        self._obs_image_size = obs_size
         self.render_mode = self.metadata["render.modes"][0]
 
         np.random.seed(self._seed)
@@ -66,11 +70,22 @@ class RobosuiteEnv(gym.Env):
                 reference_pos=np.array((0, 0, 0.8)),
                 z_offset=0.01,
             )
+        elif self._use_random_object_position == 'medium':
+            placement_initializer = UniformRandomSampler(
+                name="ObjectSampler",
+                x_range=[-0.2, 0.2],
+                y_range=[-0.2, 0.2],
+                rotation=None,
+                ensure_object_boundary_in_range=False,
+                ensure_valid_placement=True,
+                reference_pos=np.array((0, 0, 0.8)),
+                z_offset=0.01,
+            )
         elif self._use_random_object_position == 'small':
             placement_initializer = UniformRandomSampler(
                 name="ObjectSampler",
-                x_range=[0.08, 0.12],
-                y_range=[0.08, 0.12],
+                x_range=[0.06, 0.12],
+                y_range=[0.06, 0.12],
                 rotation=None,
                 ensure_object_boundary_in_range=False,
                 ensure_valid_placement=True,
@@ -80,13 +95,13 @@ class RobosuiteEnv(gym.Env):
 
         initialization_noise = None
         if self._initialization_noise_magnitude is not None:
-            initialization_noise = {'magnitude': initialization_noise_magnitude, 'type': 'uniform'}
+            initialization_noise = {'magnitude': self._initialization_noise_magnitude, 'type': 'uniform'}
 
         camera_name = 'frontview'
         self._image_key_name = f'{camera_name}_image'
         env = robosuite.make(
-            task,
-            robots=["Panda"],
+            self._task,
+            robots=[self._robot],
             gripper_types="default",
             controller_configs=controller_config,
             env_configuration="default",
@@ -96,35 +111,47 @@ class RobosuiteEnv(gym.Env):
             has_renderer=False,
             has_offscreen_renderer=True,
             control_freq=20,
-            horizon=horizon,
+            horizon=self._horizon,
             camera_names="frontview",
             placement_initializer=placement_initializer,
             initialization_noise=initialization_noise,
-            camera_heights=256,
-            camera_widths=256,
+            camera_heights=224,
+            camera_widths=224,
             ignore_done=False,
         )
 
         self._env = env
         self._last_frame = None
-        self._crop = ((18, 202), (36, 220))
-        observation_space = (self._crop[0][1] - self._crop[0][0], self._crop[1][1] - self._crop[1][0], 3)
-        self.observation_space = gym.spaces.Box(0, 255, observation_space, dtype=np.uint8)
+        self._last_source_frame = None
+        self._crop = ((15, 177), (31, 192))
+        observation_space = (self._obs_image_size, self._obs_image_size, 3)
+        self.observation_space = gym.spaces.Box(0, 255, observation_space, dtype=np.uint8, seed=self._seed)
 
         low, high = self._env.action_spec
-        self.action_space = gym.spaces.Box(low, high)
+        self.action_space = gym.spaces.Box(low, high, seed=self._seed)
 
     def _process_observation(self, observation):
-        return np.flipud(observation[self._image_key_name])[self._crop[0][0]:self._crop[0][1], self._crop[1][0]:self._crop[1][1]]
+        image = observation[self._image_key_name]
+        image = np.flipud(image)
 
-    def render(self, mode=None):
-        return self._last_frame
+        self._last_source_frame = image.copy()
+
+        if not self._raw_observation:
+            image = image[self._crop[0][0]:self._crop[0][1], self._crop[1][0]:self._crop[1][1]]
+
+        self._last_frame = np.array(Image.fromarray(image).resize((self._obs_image_size, self._obs_image_size)))
+        return self._last_frame.copy()
+
+    def render(self, *args, **kwargs):
+        return self._last_frame.copy()
 
     def reset(self, seed=None, options=None):
-        self._last_frame = self._process_observation(self._env.reset())
-        return self._last_frame
+        return self._process_observation(self._env.reset())
 
     def step(self, action):
         observation, reward, robosuite_done, info = self._env.step(action)
-        self._last_frame = self._process_observation(observation)
-        return self._last_frame, reward, robosuite_done, info
+        # in Robosuite done signal is defined only by horizon
+        return self._process_observation(observation), reward, robosuite_done, info
+
+    def get_last_source_frame(self):
+        return self._last_source_frame

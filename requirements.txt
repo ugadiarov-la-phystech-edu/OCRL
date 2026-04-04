@@ -31,3 +31,6 @@ timm==0.4.12 # for pytorch 2.
 torchdata==0.9.0
 braceexpand
 torchtyping
+gymnasium==0.29.1
+Pillow==9.5.0
+

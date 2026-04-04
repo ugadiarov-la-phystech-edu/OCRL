@@ -1,24 +1,18 @@
-import logging
-from pathlib import Path
-
 import cv2
 import gym
 import hydra
-import omegaconf
 import stable_baselines3 as sb3
-import wandb
 from gym import spaces
 from gym.wrappers import TimeLimit
 from stable_baselines3.common.callbacks import EvalCallback
+from stable_baselines3.common.logger import configure
 from stable_baselines3.common.monitor import Monitor
 from stable_baselines3.common.utils import set_random_seed
-from stable_baselines3.common.vec_env import (DummyVecEnv, SubprocVecEnv,
-                                              VecVideoRecorder)
-from wandb.integration.sb3 import WandbCallback
+from stable_baselines3.common.vec_env import (DummyVecEnv, SubprocVecEnv)
 
 import envs
 import sb3s
-from envs.maniskill3 import ManiSkill
+from envs.maniskill3 import ManiSkillEnv
 from envs.robosuite import RobosuiteEnv
 from utils.tools import *
 
@@ -57,16 +51,17 @@ def make_robosuite_lift(config_env, seed=None):
     if seed is None:
         seed = config_env.seed
 
-    env = RobosuiteEnv(config_env.name, config_env.horizon, seed, config_env.initialization_noise_magnitude,
-                       config_env.use_random_object_position)
-    env = WarpFrame(env, config_env.obs_size, config_env.obs_size, interpolation=config_env.interpolation)
+    env = RobosuiteEnv(config_env.name, config_env.horizon, config_env.initialization_noise_magnitude,
+                       config_env.use_random_object_position, config_env.raw_observation, config_env.obs_size, seed)
     return env
 
 
-def make_maniskill(config_env, seed):
-    env = ManiSkill(config_env.rew_type, config_env.obs_size, config_env.pose_reward_coef)
-    env = TimeLimit(env, max_episode_steps=50)
-    env.seed(seed)
+def make_maniskill(config_env, seed=None):
+    if seed is None:
+        seed = config_env.seed
+
+    env = ManiSkillEnv(config_env.name, config_env.obs_size, seed)
+    env = TimeLimit(env, max_episode_steps=config_env.episode_length)
     return env
 
 
@@ -79,14 +74,7 @@ def main(config):
         f"{config.env.name}{config.env.mode}mode{config.env.rew_type}rewardtype-"
         f"Seed{config.seed}"
     )
-    tags = config.tags.split(",") + config.env.tags.split(",") + [f"RandomSeed{config.seed}"]
-    init_wandb(
-        config,
-        "TrainSB3-" + log_name,
-        tags=tags,
-        sync_tensorboard=True,
-        monitor_gym=True,
-    )
+    log_path = hydra.core.hydra_config.HydraConfig.get()['runtime']['output_dir']
 
     if config.num_envs == 1:
         def make_env(seed=0):
@@ -100,7 +88,7 @@ def main(config):
                 env.action_space.seed(seed)
             elif config.env.name == 'Lift':
                 env = make_robosuite_lift(config.env)
-            elif config.env.name == 'ManiSkill':
+            elif config.env.name == 'PushCube-v1':
                 env = make_maniskill(config.env, seed=seed)
             else:
                 env = getattr(envs, config.env.env)(config.env, seed)
@@ -125,7 +113,7 @@ def main(config):
                     env.action_space.seed(seed + rank)
                 elif config.env.name == 'Lift':
                     env = make_robosuite_lift(config.env, seed=seed + rank)
-                elif config.env.name == 'ManiSkill':
+                elif config.env.name == 'PushCube-v1':
                     env = make_maniskill(config.env, seed=seed + rank)
                 else:
                     env = getattr(envs, config.env.env)(config.env, seed + rank)
@@ -153,7 +141,7 @@ def main(config):
         eval_env.action_space.seed(config.seed + config.num_envs)
     elif config.env.name == 'Lift':
         eval_env = make_robosuite_lift(config.env, seed=config.seed + config.num_envs)
-    elif config.env.name == 'ManiSkill':
+    elif config.env.name == 'PushCube-v1':
         eval_env = make_maniskill(config.env, seed=config.seed + config.num_envs)
     else:
         eval_env = getattr(envs, config.env.env)(
@@ -162,7 +150,6 @@ def main(config):
     eval_env = Monitor(eval_env)  # record stats such as returns
     model_kwargs = {
         "verbose": 1,
-        "tensorboard_log": f"{wandb.run.dir}/tb_logs/",
         "device": config.device,
         "policy_kwargs": dict(
             features_extractor_class=sb3s.OCRExtractor,
@@ -188,29 +175,22 @@ def main(config):
         **model_kwargs,
     )
     freq = config.eval.freq // config.num_envs
+    logger = configure(log_path, ['stdout', 'json'])
+    model.set_logger(logger)
     model.learn(
         total_timesteps=config.max_steps,
         log_interval=config.log_interval,
         callback=[
-            WandbCallback(
-                gradient_save_freq=config.wandb.log_gradient_freq,
-                model_save_freq=freq,
-                model_save_path=f"{wandb.run.dir}/models/",
-                verbose=2,
-            ),
             EvalCallback(
                 eval_env,
                 eval_freq=freq,
                 n_eval_episodes=config.eval.n_episodes,
-                best_model_save_path=f"{wandb.run.dir}/models/",
-                log_path=f"{wandb.run.dir}/eval_logs/",
+                best_model_save_path=f"{log_path}/models/",
+                log_path=f"{log_path}/eval_logs/",
                 deterministic=False,
             ),
         ],
     )
-    # wandb finish
-    wandb.finish()
-
 
 if __name__ == "__main__":
     main()

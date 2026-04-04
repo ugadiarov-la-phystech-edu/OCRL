@@ -1,0 +1,10 @@
+defaults:
+   - _robosuite_env_base
+   - _self_
+name: Lift
+horizon: 125
+seed: 0
+initialization_noise_magnitude: 0.5
+use_random_object_position: medium
+obs_size: 128
+raw_observation: true

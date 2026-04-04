@@ -1,0 +1,9 @@
+obs_channels: 3
+tags: ""
+mode: "default"
+rew_type: "default"
+num_stacked_obss: 1
+name: PushCube-v1
+obs_size: 96
+episode_length: 100
+seed: 0

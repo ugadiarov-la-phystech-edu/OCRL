@@ -6,11 +6,11 @@ import numpy as np
 import gymnasium
 import mani_skill.envs
 import torch
-from mani_skill import PushCubeEnv, register_env
+from PIL import Image
+from mani_skill import PushCubeEnv
 from mani_skill.utils.structs import Array, Pose
 
 
-@register_env(uid='PushCubeCustom-v1', max_episode_steps=50)
 class PushCubeCustomEnv(PushCubeEnv):
     def __init__(self, *args, pose_reward_coef=1., place_reward_coef=1., **kwargs):
         super().__init__(*args, **kwargs)
@@ -43,58 +43,60 @@ class PushCubeCustomEnv(PushCubeEnv):
         return reward
 
 
-class ManiSkill(gym.Env):
+class ManiSkillEnv(gym.Env):
     metadata = {"render.modes": ["rgb_array"]}
 
-    def __init__(self, reward_mode, image_size, pose_reward_coef=1., place_reward_coef=1.):
-        self.env = gymnasium.make(
-            'PushCubeCustom-v1',
-            pose_reward_coef=pose_reward_coef,
-            place_reward_coef=place_reward_coef,
-            obs_mode='rgbd',
+    def __init__(self, name, obs_size, seed):
+        self._name = name
+        self._obs_size = obs_size
+        self._seed = seed
+        self._env = gymnasium.make(
+            self._name,
+            obs_mode='rgb+segmentation',
             control_mode='pd_joint_delta_pos',
             render_mode='rgb_array',
-            reward_mode=reward_mode,
-            sensor_configs=dict(width=image_size, height=image_size),
+            sensor_configs=dict(width=self._obs_size, height=self._obs_size),
         ).env
-        self.observation_space = gym.spaces.Box(low=0, high=255, shape=(image_size, image_size, 3), dtype=np.uint8)
+        self.observation_space = gym.spaces.Box(low=0, high=255, shape=(self._obs_size, self._obs_size, 3),
+                                                dtype=np.uint8)
         self.action_space = gym.spaces.Box(
-            low=np.full(self.env.action_space.shape, self.env.action_space.low.min()),
-            high=np.full(self.env.action_space.shape, self.env.action_space.high.max()),
-            dtype=self.env.action_space.dtype,
+            low=np.full(self._env.action_space.shape, self._env.action_space.low.min()),
+            high=np.full(self._env.action_space.shape, self._env.action_space.high.max()),
+            dtype=self._env.action_space.dtype,
         )
-        self._last_observation = None
+        self._env.reset(seed=self._seed)
+        self.last_observation = None
 
-    def last_observation(self):
-        return self._last_observation.copy()
-
-    def seed(self, seed=None):
-        self.env.reset(seed=seed)
-        self.action_space.seed(seed)
-
-        return seed
-
-    @staticmethod
-    def _unravel(step_result):
-        unravel_result = [step_result[0]['sensor_data']['base_camera']['rgb'][0]]
+    def _unravel(self, step_result):
+        visual_data = step_result[0]['sensor_data']['base_camera']
+        rgb = visual_data['rgb'][0]
+        unravel_result = [rgb]
         unravel_result += [x[0] if hasattr(x, '__len__') else x for x in step_result[1:-1]]
         info = {key: value[0] if hasattr(value, '__len__') else value for key, value in step_result[-1].items()}
-        if 'success' in info:
-            info['is_success'] = info['success']
         unravel_result.append(info)
 
         return unravel_result
 
-    def reset(self):
-        self._last_observation = self._unravel(self.env.reset())[0].numpy()
-        return self.last_observation()
+    def _process_observation(self, observation):
+        self.last_source_observation = observation.numpy()
+        self.last_observation = np.array(
+            Image.fromarray(self.last_source_observation).resize((self._obs_size, self._obs_size))
+        )
+        return self.last_observation.copy()
+
+    def reset(self, *args, **kwargs):
+        obs = self._unravel(self._env.reset())[0]
+        return self._process_observation(obs)
 
     def step(self, action):
-        obs, reward, terminated, truncated, info = self._unravel(self.env.step(action))
-        assert not truncated, 'Cannot have time limit in unwrapped ManiSkill environment!'
+        obs, reward, terminated, truncated, info = self._unravel(self._env.step(action))
+        info = {k: v.item() for k, v in info.items()}
+        info["success"] = int(info.get("success", 0))
+        return self._process_observation(obs), reward.item(), terminated.item() or truncated.item(), info
 
-        self._last_observation = obs.numpy()
-        return self.last_observation(), float(reward.item()), bool(terminated.item()), {k: v.item() for k, v in info.items()}
+    @property
+    def unwrapped(self):
+        return self.env.unwrapped
 
-    def render(self, mode=None):
-        return self.last_observation()
+    def render(self, *args, **kwargs):
+        return self.last_observation.copy()
