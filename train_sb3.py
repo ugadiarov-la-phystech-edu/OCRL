@@ -65,18 +65,8 @@ def make_maniskill(config_env, seed=None):
     return env
 
 
-@hydra.main(config_path="configs/", config_name="train_sb3")
-def main(config):
-    torch.set_float32_matmul_precision('medium')
-    log_name = get_log_prefix(config)
-    log_name += (
-        f"-{config.sb3.name}-{config.sb3_acnet.name}-"
-        f"{config.env.name}{config.env.mode}mode{config.env.rew_type}rewardtype-"
-        f"Seed{config.seed}"
-    )
-    log_path = hydra.core.hydra_config.HydraConfig.get()['runtime']['output_dir']
-
-    if config.num_envs == 1:
+def create_env(config, num_envs, seed):
+    if num_envs == 1:
         def make_env(seed=0):
             if config.ocr.name == "GT":
                 config.env.render_mode = "state"
@@ -94,7 +84,7 @@ def main(config):
                 env = getattr(envs, config.env.env)(config.env, seed)
             env = Monitor(env)  # record stats such as returns
             return env
-        env = DummyVecEnv([make_env])
+        env = DummyVecEnv([make_env(seed)])
     else:
         def make_env(rank, seed=0):
             """
@@ -120,34 +110,28 @@ def main(config):
                 env = Monitor(env)  # record stats such as returns
                 return env
             return _init
-        set_random_seed(config.seed)
         env = SubprocVecEnv(
-            [make_env(i, seed=config.seed) for i in range(config.num_envs)],
+            [make_env(i, seed=seed) for i in range(num_envs)],
             start_method="forkserver",
         )
-    # env = VecVideoRecorder(
-    #     env,
-    #     f"{wandb.run.dir}/videos/",
-    #     record_video_trigger=lambda x: x % config.video.interval == 0,
-    #     video_length=config.video.length,
-    # )
-    if config.ocr.name == "GT":
-        config.env.render_mode = "state"
-    if config.env.name.startswith('Navigation') or config.env.name.startswith('Pushing'):
-        eval_env = gym.make(config.env.name)
-        eval_env = WarpFrame(eval_env, width=config.env.obs_size, height=config.env.obs_size, interpolation=config.env.interpolation)
-        eval_env = FailOnTimelimitWrapper(eval_env)
-        eval_env.seed(config.seed + config.num_envs)
-        eval_env.action_space.seed(config.seed + config.num_envs)
-    elif config.env.name == 'Lift':
-        eval_env = make_robosuite_lift(config.env, seed=config.seed + config.num_envs)
-    elif config.env.name == 'PushCube-v1':
-        eval_env = make_maniskill(config.env, seed=config.seed + config.num_envs)
-    else:
-        eval_env = getattr(envs, config.env.env)(
-            config.env, seed=config.seed + config.num_envs
-        )
-    eval_env = Monitor(eval_env)  # record stats such as returns
+
+    return env
+
+
+@hydra.main(config_path="configs/", config_name="train_sb3")
+def main(config):
+    torch.set_float32_matmul_precision('medium')
+    set_random_seed(config.seed)
+
+    log_name = get_log_prefix(config)
+    log_name += (
+        f"-{config.sb3.name}-{config.sb3_acnet.name}-"
+        f"{config.env.name}{config.env.mode}mode{config.env.rew_type}rewardtype-"
+        f"Seed{config.seed}"
+    )
+    log_path = hydra.core.hydra_config.HydraConfig.get()['runtime']['output_dir']
+    env = create_env(config, num_envs=config.num_envs, seed=config.seed)
+    eval_env = create_env(config, num_envs=config.eval.num_envs, seed=config.seed + config.num_envs)
     model_kwargs = {
         "verbose": 1,
         "device": config.device,
