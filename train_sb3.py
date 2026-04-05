@@ -66,6 +66,10 @@ def make_maniskill(config_env, seed=None):
 
 
 def create_env(config, num_envs, seed):
+    info_keywords = ()
+    if config.env.get("check_success", False):
+        info_keywords = ("is_success",)
+
     if num_envs == 1:
         def make_env(seed=0):
             if config.ocr.name == "GT":
@@ -82,7 +86,7 @@ def create_env(config, num_envs, seed):
                 env = make_maniskill(config.env, seed=seed)
             else:
                 env = getattr(envs, config.env.env)(config.env, seed)
-            env = Monitor(env, info_keywords=("is_success",))  # record stats such as returns
+            env = Monitor(env, info_keywords=info_keywords)  # record stats such as returns
             return env
         env = DummyVecEnv([make_env(seed)])
     else:
@@ -107,7 +111,7 @@ def create_env(config, num_envs, seed):
                     env = make_maniskill(config.env, seed=seed + rank)
                 else:
                     env = getattr(envs, config.env.env)(config.env, seed + rank)
-                env = Monitor(env, info_keywords=("is_success",))  # record stats such as returns
+                env = Monitor(env, info_keywords=info_keywords)  # record stats such as returns
                 return env
             return _init
         env = SubprocVecEnv(
