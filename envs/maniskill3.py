@@ -92,6 +92,7 @@ class ManiSkillEnv(gym.Env):
         obs, reward, terminated, truncated, info = self._unravel(self._env.step(action))
         info = {k: v.item() for k, v in info.items()}
         info["success"] = int(info.get("success", 0))
+        info["is_success"] = bool(info["success"])
         return self._process_observation(obs), reward.item(), terminated.item() or truncated.item(), info
 
     @property

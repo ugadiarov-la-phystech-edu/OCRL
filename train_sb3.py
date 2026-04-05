@@ -82,7 +82,7 @@ def create_env(config, num_envs, seed):
                 env = make_maniskill(config.env, seed=seed)
             else:
                 env = getattr(envs, config.env.env)(config.env, seed)
-            env = Monitor(env)  # record stats such as returns
+            env = Monitor(env, info_keywords=("is_success",))  # record stats such as returns
             return env
         env = DummyVecEnv([make_env(seed)])
     else:
@@ -107,7 +107,7 @@ def create_env(config, num_envs, seed):
                     env = make_maniskill(config.env, seed=seed + rank)
                 else:
                     env = getattr(envs, config.env.env)(config.env, seed + rank)
-                env = Monitor(env)  # record stats such as returns
+                env = Monitor(env, info_keywords=("is_success",))  # record stats such as returns
                 return env
             return _init
         env = SubprocVecEnv(
